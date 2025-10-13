@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TelePrompt One Pro</string>
+    <string name="overlay_permission_required">Overlay Permission Required</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="no_scripts">No scripts yet. Tap + to create one.</string>
+    <string name="show_overlay">Show Overlay</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="new_script">New Script</string>
+    <string name="edit_script">Edit Script</string>
+    <string name="script_title">Script Title</string>
+    <string name="script_content">Script Content</string>
+    <string name="teleprompter_active">Teleprompter Active</string>
+    <string name="tap_to_return">Tap to return to app</string>
+    <string name="speed_format">Speed: %d</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_slower">Decrease scroll speed</string>
+    <string name="content_desc_faster">Increase scroll speed</string>
+    <string name="content_desc_play_pause">Play or pause scrolling</string>
+    <string name="content_desc_settings">Open settings</string>
+    <string name="content_desc_minimize">Close teleprompter overlay</string>
+
+    <!-- Default Values -->
+    <string name="default_speed_indicator">Speed: 50</string>
+    <string name="default_teleprompter_text">Your teleprompter text will appear here...</string>
+</resources>

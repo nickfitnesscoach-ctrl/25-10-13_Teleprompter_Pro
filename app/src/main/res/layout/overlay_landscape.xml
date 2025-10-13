@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/overlay_background">
+
+    <!-- Main content container for landscape -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Text content (takes 70% of width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.7"
+            android:orientation="vertical">
+
+            <!-- Drag handle bar -->
+            <LinearLayout
+                android:id="@+id/dragHandle"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:background="@color/drag_handle_background">
+
+                <View
+                    android:layout_width="40dp"
+                    android:layout_height="4dp"
+                    android:background="@color/drag_handle_indicator"
+                    android:layout_gravity="center" />
+            </LinearLayout>
+
+            <!-- ScrollView for teleprompter text (narrower in landscape) -->
+            <ScrollView
+                android:id="@+id/scriptScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:layout_marginTop="8dp"
+                android:scrollbars="none"
+                android:fillViewport="false"
+                android:overScrollMode="never">
+
+                <TextView
+                    android:id="@+id/scriptTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Your teleprompter text will appear here..."
+                    android:textSize="22sp"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center_vertical"
+                    android:lineSpacingMultiplier="1.4"
+                    android:padding="16dp"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="999999"
+                    android:ellipsize="none" />
+            </ScrollView>
+
+            <!-- Speed indicator -->
+            <TextView
+                android:id="@+id/speedIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/default_speed_indicator"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_gravity="center"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+
+        <!-- Vertical control buttons on the right (takes 30% of width) -->
+        <LinearLayout
+            android:id="@+id/controlButtons"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.3"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <!-- Play/Pause button -->
+            <ImageButton
+                android:id="@+id/btnPlayPause"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_media_play"
+                android:contentDescription="@string/content_desc_play_pause"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Slower button -->
+            <ImageButton
+                android:id="@+id/btnSlower"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_media_previous"
+                android:contentDescription="@string/content_desc_slower"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Faster button -->
+            <ImageButton
+                android:id="@+id/btnFaster"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_media_next"
+                android:contentDescription="@string/content_desc_faster"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Settings button -->
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_menu_preferences"
+                android:contentDescription="@string/content_desc_settings"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Minimize button -->
+            <ImageButton
+                android:id="@+id/btnMinimize"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:contentDescription="@string/content_desc_minimize" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

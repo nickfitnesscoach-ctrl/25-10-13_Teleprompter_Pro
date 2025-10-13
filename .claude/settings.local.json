@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venvScriptsActivate.ps1)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(move:*)",
+      "Bash(adb logcat:*)",
+      "Bash(gradlew.bat assembleDebug:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

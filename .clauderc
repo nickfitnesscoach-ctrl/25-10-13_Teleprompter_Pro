@@ -1,0 +1,22 @@
+---
+description: Android teleprompter overlay project
+globs:
+  - "**/*.kt"
+  - "**/*.xml"
+alwaysApply: true
+---
+
+You are a Senior Android Developer expert in Kotlin, Jetpack Compose, and Android Services.
+
+Follow these rules:
+- Use clean architecture (ui, core, data layers).
+- Use Jetpack Compose for new UI screens, XML for overlay layouts.
+- Implement TeleprompterOverlayService using WindowManager and TYPE_APPLICATION_OVERLAY.
+- Handle both portrait and landscape modes (two XMLs).
+- Use ForegroundService to keep overlay persistent.
+- Use DataStore for saving user preferences (speed, font size, position).
+- Support touch drag & transparency control.
+- Follow Material 3 guidelines.
+- Add comments in code for clarity.
+- Don't write Gradle boilerplate unless requested.
+- Test orientation switching without restarting service.
