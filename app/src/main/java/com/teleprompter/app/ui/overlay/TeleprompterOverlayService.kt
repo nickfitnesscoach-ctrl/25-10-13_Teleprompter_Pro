@@ -27,9 +27,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import com.teleprompter.app.R
+import com.teleprompter.app.data.preferences.OverlayPreferences
 import com.teleprompter.app.ui.main.MainActivity
 import com.teleprompter.app.utils.Constants
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Foreground service for displaying teleprompter overlay
@@ -41,6 +45,17 @@ class TeleprompterOverlayService : LifecycleService() {
     // WindowManager for overlay
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
+
+    // Preferences for saving position
+    private lateinit var overlayPreferences: OverlayPreferences
+
+    // Drag state
+    private var isDragging = false
+    private var initialTouchX = 0f
+    private var initialTouchY = 0f
+    private var initialX = 0
+    private var initialY = 0
 
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
@@ -78,6 +93,7 @@ class TeleprompterOverlayService : LifecycleService() {
         }
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        overlayPreferences = OverlayPreferences(this)
 
         // Create notification channel
         createNotificationChannel()
@@ -129,7 +145,12 @@ class TeleprompterOverlayService : LifecycleService() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        val params = WindowManager.LayoutParams(
+        // Load saved position synchronously
+        val (savedX, savedY) = runBlocking {
+            overlayPreferences.getPosition()
+        }
+
+        layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
@@ -138,11 +159,13 @@ class TeleprompterOverlayService : LifecycleService() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.TOP
+            gravity = Gravity.TOP or Gravity.START
+            x = savedX
+            y = savedY
         }
 
         // Add view to window
-        windowManager.addView(overlayView, params)
+        windowManager.addView(overlayView, layoutParams)
 
         // Setup UI components
         setupViews()
@@ -204,6 +227,12 @@ class TeleprompterOverlayService : LifecycleService() {
                 }
                 else -> false
             }
+        }
+
+        // Setup drag button
+        val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
+        btnDrag?.setOnTouchListener { _, event ->
+            handleDragTouch(event)
         }
 
         btnMinimize?.setOnClickListener {
@@ -371,6 +400,66 @@ class TeleprompterOverlayService : LifecycleService() {
             speedChangeHandler.removeCallbacks(it)
         }
         speedChangeRunnable = null
+    }
+
+    /**
+     * Handle drag touch events
+     */
+    private fun handleDragTouch(event: MotionEvent): Boolean {
+        val params = layoutParams ?: return false
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isDragging = true
+                initialX = params.x
+                initialY = params.y
+                initialTouchX = event.rawX
+                initialTouchY = event.rawY
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (isDragging) {
+                    val deltaX = (event.rawX - initialTouchX).toInt()
+                    val deltaY = (event.rawY - initialTouchY).toInt()
+
+                    val newX = initialX + deltaX
+                    val newY = initialY + deltaY
+
+                    // Get screen dimensions
+                    val displayMetrics = resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
+                    val screenHeight = displayMetrics.heightPixels
+
+                    // Get overlay dimensions
+                    val overlayWidth = overlayView?.width ?: 0
+                    val overlayHeight = overlayView?.height ?: 0
+
+                    // Constrain to screen bounds
+                    params.x = newX.coerceIn(-overlayWidth / 2, screenWidth - overlayWidth / 2)
+                    params.y = newY.coerceIn(0, screenHeight - overlayHeight)
+
+                    // Update view layout
+                    overlayView?.let { windowManager.updateViewLayout(it, params) }
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (isDragging) {
+                    isDragging = false
+
+                    // Save position to preferences
+                    lifecycleScope.launch {
+                        overlayPreferences.saveOverlayPosition(params.x, params.y)
+                        Log.d("TeleprompterService", "Saved overlay position: x=${params.x}, y=${params.y}")
+                    }
+                }
+                return true
+            }
+
+            else -> return false
+        }
     }
 
     /**
