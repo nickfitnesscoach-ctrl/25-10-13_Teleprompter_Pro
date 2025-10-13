@@ -57,6 +57,11 @@ class TeleprompterOverlayService : LifecycleService() {
     private var initialX = 0
     private var initialY = 0
 
+    // Resize state
+    private var isResizing = false
+    private var initialResizeTouchY = 0f
+    private var initialHeight = 0
+
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
     private var isScrolling = false
@@ -145,14 +150,17 @@ class TeleprompterOverlayService : LifecycleService() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // Load saved position synchronously
+        // Load saved position and height synchronously
         val (savedX, savedY) = runBlocking {
             overlayPreferences.getPosition()
+        }
+        val savedHeight = runBlocking {
+            overlayPreferences.getHeight()
         }
 
         layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            savedHeight,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
@@ -233,6 +241,12 @@ class TeleprompterOverlayService : LifecycleService() {
         val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
         btnDrag?.setOnTouchListener { _, event ->
             handleDragTouch(event)
+        }
+
+        // Setup resize button
+        val btnResize = view.findViewById<ImageButton>(R.id.btnResize)
+        btnResize?.setOnTouchListener { _, event ->
+            handleResizeTouch(event)
         }
 
         btnMinimize?.setOnClickListener {
@@ -453,6 +467,60 @@ class TeleprompterOverlayService : LifecycleService() {
                     lifecycleScope.launch {
                         overlayPreferences.saveOverlayPosition(params.x, params.y)
                         Log.d("TeleprompterService", "Saved overlay position: x=${params.x}, y=${params.y}")
+                    }
+                }
+                return true
+            }
+
+            else -> return false
+        }
+    }
+
+    /**
+     * Handle touch events for resizing overlay
+     */
+    private fun handleResizeTouch(event: MotionEvent): Boolean {
+        val params = layoutParams ?: return false
+
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                isResizing = true
+                initialResizeTouchY = event.rawY
+                initialHeight = params.height
+                Log.d("TeleprompterService", "Started resizing from height: $initialHeight")
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (isResizing) {
+                    val deltaY = (event.rawY - initialResizeTouchY).toInt()
+                    val newHeight = initialHeight + deltaY
+
+                    // Get screen dimensions
+                    val displayMetrics = resources.displayMetrics
+                    val screenHeight = displayMetrics.heightPixels
+
+                    // Set min/max constraints (100dp to screen height)
+                    val minHeight = (100 * displayMetrics.density).toInt()
+                    val maxHeight = screenHeight
+
+                    // Constrain height
+                    params.height = newHeight.coerceIn(minHeight, maxHeight)
+
+                    // Update view layout
+                    overlayView?.let { windowManager.updateViewLayout(it, params) }
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (isResizing) {
+                    isResizing = false
+
+                    // Save height to preferences
+                    lifecycleScope.launch {
+                        overlayPreferences.saveOverlayHeight(params.height)
+                        Log.d("TeleprompterService", "Saved overlay height: ${params.height}")
                     }
                 }
                 return true

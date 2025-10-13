@@ -113,16 +113,6 @@
                 android:contentDescription="@string/content_desc_faster"
                 android:layout_marginBottom="8dp" />
 
-            <!-- Settings button -->
-            <ImageButton
-                android:id="@+id/btnSettings"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_menu_preferences"
-                android:contentDescription="@string/content_desc_settings"
-                android:layout_marginBottom="8dp" />
-
             <!-- Drag button -->
             <ImageButton
                 android:id="@+id/btnDrag"
@@ -131,6 +121,17 @@
                 android:background="@drawable/drag_button_background"
                 android:src="@drawable/ic_drag_handle"
                 android:contentDescription="@string/content_desc_drag"
+                android:layout_marginBottom="8dp"
+                android:scaleType="center" />
+
+            <!-- Resize button -->
+            <ImageButton
+                android:id="@+id/btnResize"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/drag_button_background"
+                android:src="@drawable/ic_resize_vertical"
+                android:contentDescription="@string/content_desc_resize"
                 android:layout_marginBottom="8dp"
                 android:scaleType="center" />
 

@@ -19,10 +19,12 @@ class OverlayPreferences(private val context: Context) {
     companion object {
         private val OVERLAY_X = intPreferencesKey("overlay_x")
         private val OVERLAY_Y = intPreferencesKey("overlay_y")
+        private val OVERLAY_HEIGHT = intPreferencesKey("overlay_height")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
         const val DEFAULT_Y = 100
+        const val DEFAULT_HEIGHT = 800 // Default height in pixels (approximately 400dp on most devices)
     }
 
     /**
@@ -40,12 +42,28 @@ class OverlayPreferences(private val context: Context) {
     }
 
     /**
+     * Get saved overlay height
+     */
+    val overlayHeight: Flow<Int> = context.dataStore.data.map { preferences ->
+        preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+    }
+
+    /**
      * Save overlay position
      */
     suspend fun saveOverlayPosition(x: Int, y: Int) {
         context.dataStore.edit { preferences ->
             preferences[OVERLAY_X] = x
             preferences[OVERLAY_Y] = y
+        }
+    }
+
+    /**
+     * Save overlay height
+     */
+    suspend fun saveOverlayHeight(height: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[OVERLAY_HEIGHT] = height
         }
     }
 
@@ -62,5 +80,27 @@ class OverlayPreferences(private val context: Context) {
         }
 
         return Pair(x, y)
+    }
+
+    /**
+     * Get height synchronously (for initial load)
+     */
+    suspend fun getHeight(): Int {
+        var height = DEFAULT_HEIGHT
+
+        context.dataStore.edit { preferences ->
+            height = preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+        }
+
+        return height
+    }
+
+    /**
+     * Reset overlay height to default
+     */
+    suspend fun resetHeight() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(OVERLAY_HEIGHT)
+        }
     }
 }

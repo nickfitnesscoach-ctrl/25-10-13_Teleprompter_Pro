@@ -23,6 +23,7 @@
     <string name="content_desc_play_pause">Play or pause scrolling</string>
     <string name="content_desc_settings">Open settings</string>
     <string name="content_desc_drag">Drag to move overlay</string>
+    <string name="content_desc_resize">Drag to resize overlay height</string>
     <string name="content_desc_minimize">Close teleprompter overlay</string>
 
     <!-- Default Values -->
