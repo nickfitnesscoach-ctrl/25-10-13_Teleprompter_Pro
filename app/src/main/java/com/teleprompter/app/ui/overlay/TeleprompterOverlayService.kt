@@ -11,10 +11,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.LinearInterpolator
@@ -42,7 +45,12 @@ class TeleprompterOverlayService : LifecycleService() {
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
     private var isScrolling = false
-    private var scrollSpeed = 50L // milliseconds per pixel (50 = default speed)
+    private var scrollSpeed = 50 // Speed level: 1 = slowest, 500 = fastest
+
+    // Speed control with hold functionality
+    private val speedChangeHandler = Handler(Looper.getMainLooper())
+    private var speedChangeRunnable: Runnable? = null
+    private var isHoldingButton = false
 
     // UI components
     private var scriptTextView: TextView? = null
@@ -166,12 +174,36 @@ class TeleprompterOverlayService : LifecycleService() {
             }
         }
 
-        btnSlower?.setOnClickListener {
-            decreaseSpeed()
+        // Setup slower button with hold functionality
+        btnSlower?.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    decreaseSpeed()
+                    startSpeedChangeRepeater(false) // false = slower
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopSpeedChangeRepeater()
+                    true
+                }
+                else -> false
+            }
         }
 
-        btnFaster?.setOnClickListener {
-            increaseSpeed()
+        // Setup faster button with hold functionality
+        btnFaster?.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    increaseSpeed()
+                    startSpeedChangeRepeater(true) // true = faster
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    stopSpeedChangeRepeater()
+                    true
+                }
+                else -> false
+            }
         }
 
         btnMinimize?.setOnClickListener {
@@ -221,8 +253,11 @@ class TeleprompterOverlayService : LifecycleService() {
                 return@post
             }
 
-            // Calculate duration based on speed
-            val duration = (remainingDistance * scrollSpeed)
+            // Calculate duration based on speed (higher speed = faster = less duration)
+            // Formula: duration = distance * (1000 / speed)
+            // Speed 1: very slow (1000ms per pixel)
+            // Speed 500: very fast (2ms per pixel)
+            val duration = (remainingDistance * 1000 / scrollSpeed).toLong()
 
             Log.d("TeleprompterService", "Starting scroll from $currentY to $fullHeight, duration=$duration ms")
 
@@ -257,8 +292,9 @@ class TeleprompterOverlayService : LifecycleService() {
      * Increase scroll speed (make it faster)
      */
     private fun increaseSpeed() {
-        // Lower milliseconds per pixel = faster
-        scrollSpeed = (scrollSpeed - 10L).coerceAtLeast(10L)
+        // Higher speed number = faster
+        // Increase by 1 for very smooth increment
+        scrollSpeed = (scrollSpeed + 1).coerceAtMost(500)
         updateSpeedIndicator()
 
         // Restart scrolling with new speed if currently scrolling
@@ -277,8 +313,9 @@ class TeleprompterOverlayService : LifecycleService() {
      * Decrease scroll speed (make it slower)
      */
     private fun decreaseSpeed() {
-        // Higher milliseconds per pixel = slower
-        scrollSpeed = (scrollSpeed + 10L).coerceAtMost(200L)
+        // Lower speed number = slower
+        // Decrease by 1 for very smooth increment
+        scrollSpeed = (scrollSpeed - 1).coerceAtLeast(1)
         updateSpeedIndicator()
 
         // Restart scrolling with new speed if currently scrolling
@@ -297,9 +334,43 @@ class TeleprompterOverlayService : LifecycleService() {
      * Update speed indicator text
      */
     private fun updateSpeedIndicator() {
-        // Convert ms/pixel to a more readable "speed" value (1-10)
-        val speedLevel = ((200 - scrollSpeed) / 20 + 1).toInt()
-        speedIndicator?.text = "Speed: $speedLevel"
+        // Display speed level (1-500)
+        speedIndicator?.text = "Speed: $scrollSpeed"
+    }
+
+    /**
+     * Start repeating speed changes when button is held
+     */
+    private fun startSpeedChangeRepeater(isIncreasing: Boolean) {
+        isHoldingButton = true
+
+        speedChangeRunnable = object : Runnable {
+            override fun run() {
+                if (isHoldingButton) {
+                    if (isIncreasing) {
+                        increaseSpeed()
+                    } else {
+                        decreaseSpeed()
+                    }
+                    // Repeat every 50ms for smooth continuous change
+                    speedChangeHandler.postDelayed(this, 50)
+                }
+            }
+        }
+
+        // Start repeating after 300ms delay (so single tap works normally)
+        speedChangeHandler.postDelayed(speedChangeRunnable!!, 300)
+    }
+
+    /**
+     * Stop repeating speed changes when button is released
+     */
+    private fun stopSpeedChangeRepeater() {
+        isHoldingButton = false
+        speedChangeRunnable?.let {
+            speedChangeHandler.removeCallbacks(it)
+        }
+        speedChangeRunnable = null
     }
 
     /**
@@ -345,6 +416,10 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Stop scrolling
         stopScrolling()
+
+        // Stop speed change repeater
+        stopSpeedChangeRepeater()
+        speedChangeHandler.removeCallbacksAndMessages(null)
 
         // Remove overlay
         overlayView?.let { view ->
