@@ -13,8 +13,8 @@
     <dimen name="control_panel_height">101dp</dimen>
 
     <!-- Button dimensions -->
-    <dimen name="button_size">85dp</dimen>
-    <dimen name="button_spacing">5dp</dimen>
+    <dimen name="button_size">40dp</dimen>
+    <dimen name="button_spacing">2dp</dimen>
 
     <!-- Text area dimensions -->
     <dimen name="text_area_corner_radius">16dp</dimen>

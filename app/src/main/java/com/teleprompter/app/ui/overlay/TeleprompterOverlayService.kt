@@ -1,5 +1,6 @@
 package com.teleprompter.app.ui.overlay
 
+import android.annotation.SuppressLint
 import android.Manifest
 import android.animation.ValueAnimator
 import android.app.Notification
@@ -10,7 +11,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.PixelFormat
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -91,20 +91,18 @@ class TeleprompterOverlayService : LifecycleService() {
         super.onCreate()
 
         // Check notification permission for Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                Toast.makeText(
-                    this,
-                    "Notification permission required for teleprompter overlay",
-                    Toast.LENGTH_LONG
-                ).show()
-                stopSelf()
-                return
-            }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            Toast.makeText(
+                this,
+                "Notification permission required for teleprompter overlay",
+                Toast.LENGTH_LONG
+            ).show()
+            stopSelf()
+            return
         }
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -146,19 +144,16 @@ class TeleprompterOverlayService : LifecycleService() {
     /**
      * Create overlay window and setup UI
      */
+    @SuppressLint("InflateParams")
     private fun createOverlay() {
         if (overlayView != null) return
 
-        // Inflate layout
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_portrait, null)
+        // Inflate layout without parent (null is correct for WindowManager overlays)
+        val inflater = LayoutInflater.from(this)
+        overlayView = inflater.inflate(R.layout.overlay_portrait, null)
 
-        // Create layout params
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
+        // Create layout params - always use TYPE_APPLICATION_OVERLAY for Android O+
+        val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
         // Load saved position and height synchronously
         val (savedX, savedY) = runBlocking {
@@ -193,6 +188,7 @@ class TeleprompterOverlayService : LifecycleService() {
     /**
      * Setup overlay views and button listeners
      */
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupViews() {
         val view = overlayView ?: return
 
@@ -264,6 +260,13 @@ class TeleprompterOverlayService : LifecycleService() {
             stopSelf()
         }
 
+        // Setup PIP button (Picture-in-Picture mode)
+        val btnPip = view.findViewById<ImageButton>(R.id.btnPip)
+        btnPip?.setOnClickListener {
+            // TODO: Implement PIP mode functionality
+            Toast.makeText(this, "PIP mode - coming soon", Toast.LENGTH_SHORT).show()
+        }
+
         // Setup pinch-to-zoom for text size
         setupTextSizeGesture()
 
@@ -274,6 +277,7 @@ class TeleprompterOverlayService : LifecycleService() {
     /**
      * Setup pinch-to-zoom gesture for text size
      */
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupTextSizeGesture() {
         val textView = scriptTextView ?: return
 
@@ -419,13 +423,10 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Restart scrolling with new speed if currently scrolling
         if (isScrolling) {
-            val wasScrolling = isScrolling
             stopScrolling()
             startScrolling()
-            if (wasScrolling) {
-                overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
-                    ?.setImageResource(android.R.drawable.ic_media_pause)
-            }
+            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
+                ?.setImageResource(android.R.drawable.ic_media_pause)
         }
     }
 
@@ -440,13 +441,10 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Restart scrolling with new speed if currently scrolling
         if (isScrolling) {
-            val wasScrolling = isScrolling
             stopScrolling()
             startScrolling()
-            if (wasScrolling) {
-                overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
-                    ?.setImageResource(android.R.drawable.ic_media_pause)
-            }
+            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
+                ?.setImageResource(android.R.drawable.ic_media_pause)
         }
     }
 
@@ -455,7 +453,7 @@ class TeleprompterOverlayService : LifecycleService() {
      */
     private fun updateSpeedIndicator() {
         // Display speed level (1-500)
-        speedIndicator?.text = "Speed: $scrollSpeed"
+        speedIndicator?.text = getString(R.string.speed_format, scrollSpeed)
     }
 
     /**
@@ -611,17 +609,17 @@ class TeleprompterOverlayService : LifecycleService() {
      * Create notification channel for foreground service
      */
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        NotificationChannel(
             "teleprompter_overlay",
             "Teleprompter Overlay",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Keeps teleprompter overlay active"
             setShowBadge(false)
-        }
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(this)
+        }
     }
 
     /**
@@ -637,8 +635,8 @@ class TeleprompterOverlayService : LifecycleService() {
         )
 
         return Notification.Builder(this, "teleprompter_overlay")
-            .setContentTitle("TelePrompt One Pro")
-            .setContentText("Суфлёр активен поверх других приложений")
+            .setContentTitle(getString(R.string.notification_title))
+            .setContentText(getString(R.string.notification_text))
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
@@ -659,7 +657,7 @@ class TeleprompterOverlayService : LifecycleService() {
         overlayView?.let { view ->
             try {
                 windowManager.removeView(view)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // View already removed, ignore
             }
         }

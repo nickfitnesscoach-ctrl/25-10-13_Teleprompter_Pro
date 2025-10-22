@@ -1,9 +1,29 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
+    android:width="40dp"
+    android:height="40dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,2L8,6h3v12H8l4,4l4,-4h-3V6h3L12,2z"/>
+    <!-- Diagonal line with arrowheads at both ends -->
+    <group>
+        <!-- Main diagonal line -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:pathData="M6,18L18,6"/>
+        <!-- Top arrowhead (pointing up-right) -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M14,6L18,6L18,10"/>
+        <!-- Bottom arrowhead (pointing down-left) -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M10,18L6,18L6,14"/>
+    </group>
 </vector>

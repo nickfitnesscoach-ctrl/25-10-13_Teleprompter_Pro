@@ -29,4 +29,8 @@
     <!-- Default Values -->
     <string name="default_speed_indicator">Speed: 50</string>
     <string name="default_teleprompter_text">Your teleprompter text will appear here...</string>
+
+    <!-- Notification -->
+    <string name="notification_title">TelePrompt One Pro</string>
+    <string name="notification_text">Суфлёр активен поверх других приложений</string>
 </resources>

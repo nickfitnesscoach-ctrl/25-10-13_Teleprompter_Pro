@@ -63,74 +63,91 @@
             android:orientation="horizontal"
             android:gravity="center"
             android:layout_marginTop="16dp"
-            android:padding="8dp">
+            android:padding="12dp"
+            android:background="@color/control_panel_background">
 
-            <!-- Slower button (Figma design) -->
+            <!-- 1. Minus/Slower button -->
             <ImageButton
                 android:id="@+id/btnSlower"
                 android:layout_width="@dimen/button_size"
                 android:layout_height="@dimen/button_size"
                 android:background="@color/button_background"
                 android:src="@drawable/ic_minus"
+                android:tint="@color/white"
                 android:contentDescription="@string/content_desc_slower"
                 android:layout_marginEnd="@dimen/button_spacing"
-                android:scaleType="center" />
+                android:scaleType="centerInside" />
 
-            <!-- Play/Pause button (Figma design) -->
+            <!-- 2. Play/Pause button -->
             <ImageButton
                 android:id="@+id/btnPlayPause"
                 android:layout_width="@dimen/button_size"
                 android:layout_height="@dimen/button_size"
                 android:background="@color/button_background"
                 android:src="@drawable/ic_play"
+                android:tint="@color/white"
                 android:contentDescription="@string/content_desc_play_pause"
-                android:layout_marginStart="@dimen/button_spacing"
                 android:layout_marginEnd="@dimen/button_spacing"
-                android:scaleType="center" />
+                android:scaleType="centerInside" />
 
-            <!-- Faster button (Figma design) -->
+            <!-- 3. Plus/Faster button -->
             <ImageButton
                 android:id="@+id/btnFaster"
                 android:layout_width="@dimen/button_size"
                 android:layout_height="@dimen/button_size"
                 android:background="@color/button_background"
                 android:src="@drawable/ic_plus"
+                android:tint="@color/white"
                 android:contentDescription="@string/content_desc_faster"
-                android:layout_marginStart="@dimen/button_spacing"
-                android:scaleType="center" />
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="centerInside" />
 
-            <!-- Drag button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnDrag"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_move"
-                android:contentDescription="@string/content_desc_drag"
-                android:layout_marginStart="@dimen/button_spacing"
-                android:scaleType="center" />
-
-            <!-- Resize button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnResize"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_resize_vertical"
-                android:contentDescription="@string/content_desc_resize"
-                android:layout_marginStart="@dimen/button_spacing"
-                android:scaleType="center" />
-
-            <!-- Close button (Figma design) -->
+            <!-- 4. Close button -->
             <ImageButton
                 android:id="@+id/btnMinimize"
                 android:layout_width="@dimen/button_size"
                 android:layout_height="@dimen/button_size"
                 android:background="@color/button_background"
                 android:src="@drawable/ic_close"
+                android:tint="@color/white"
                 android:contentDescription="@string/content_desc_minimize"
-                android:layout_marginStart="@dimen/button_spacing"
-                android:scaleType="center" />
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="centerInside" />
+
+            <!-- 5. PIP button -->
+            <ImageButton
+                android:id="@+id/btnPip"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_pip"
+                android:tint="@color/white"
+                android:contentDescription="Picture in Picture"
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="centerInside" />
+
+            <!-- 6. Move/Drag button -->
+            <ImageButton
+                android:id="@+id/btnDrag"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_move"
+                android:tint="@color/white"
+                android:contentDescription="@string/content_desc_drag"
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="centerInside" />
+
+            <!-- 7. Resize button -->
+            <ImageButton
+                android:id="@+id/btnResize"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_resize_vertical"
+                android:tint="@color/white"
+                android:contentDescription="@string/content_desc_resize"
+                android:scaleType="centerInside" />
         </LinearLayout>
 
         <!-- Speed indicator -->
