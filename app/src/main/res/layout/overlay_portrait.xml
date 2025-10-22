@@ -98,6 +98,7 @@
                 android:src="@drawable/ic_plus"
                 android:tint="@color/white"
                 android:contentDescription="@string/content_desc_faster"
+                android:layout_marginEnd="@dimen/button_spacing"
                 android:scaleType="centerInside" />
 
             <!-- Spacer between groups -->
