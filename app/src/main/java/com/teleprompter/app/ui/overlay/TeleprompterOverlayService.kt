@@ -86,6 +86,11 @@ class TeleprompterOverlayService : LifecycleService() {
     private var scriptTextView: TextView? = null
     private var scrollView: ScrollView? = null
     private var speedIndicator: TextView? = null
+    private var speedOverlay: TextView? = null
+
+    // Speed overlay timer
+    private val speedOverlayHandler = Handler(Looper.getMainLooper())
+    private var speedOverlayRunnable: Runnable? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -196,6 +201,7 @@ class TeleprompterOverlayService : LifecycleService() {
         scrollView = view.findViewById(R.id.scriptScrollView)
         scriptTextView = view.findViewById(R.id.scriptTextView)
         speedIndicator = view.findViewById(R.id.speedIndicator)
+        speedOverlay = view.findViewById(R.id.speedOverlay)
         val btnPlayPause = view.findViewById<ImageButton>(R.id.btnPlayPause)
         val btnSlower = view.findViewById<ImageButton>(R.id.btnSlower)
         val btnFaster = view.findViewById<ImageButton>(R.id.btnFaster)
@@ -454,6 +460,31 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun updateSpeedIndicator() {
         // Display speed level (1-500)
         speedIndicator?.text = getString(R.string.speed_format, scrollSpeed)
+
+        // Show speed on play button temporarily
+        showSpeedOverlay()
+    }
+
+    /**
+     * Show speed value on play button temporarily
+     */
+    private fun showSpeedOverlay() {
+        // Cancel any existing hide timer
+        speedOverlayRunnable?.let { speedOverlayHandler.removeCallbacks(it) }
+
+        // Hide play button and show speed overlay
+        overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = android.view.View.GONE
+        speedOverlay?.apply {
+            text = scrollSpeed.toString()
+            visibility = android.view.View.VISIBLE
+        }
+
+        // Hide after 0.5 seconds and show play button again
+        speedOverlayRunnable = Runnable {
+            speedOverlay?.visibility = android.view.View.GONE
+            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = android.view.View.VISIBLE
+        }
+        speedOverlayHandler.postDelayed(speedOverlayRunnable!!, 500)
     }
 
     /**
@@ -652,6 +683,10 @@ class TeleprompterOverlayService : LifecycleService() {
         // Stop speed change repeater
         stopSpeedChangeRepeater()
         speedChangeHandler.removeCallbacksAndMessages(null)
+
+        // Clear speed overlay timer
+        speedOverlayRunnable?.let { speedOverlayHandler.removeCallbacks(it) }
+        speedOverlayHandler.removeCallbacksAndMessages(null)
 
         // Remove overlay
         overlayView?.let { view ->

@@ -61,17 +61,33 @@
                 android:layout_marginEnd="@dimen/button_spacing"
                 android:scaleType="centerInside" />
 
-            <!-- 2. Play/Pause button -->
-            <ImageButton
-                android:id="@+id/btnPlayPause"
+            <!-- 2. Play/Pause button with speed overlay -->
+            <FrameLayout
                 android:layout_width="@dimen/button_size"
                 android:layout_height="@dimen/button_size"
-                android:background="@drawable/button_background"
-                android:src="@drawable/ic_play"
-                android:tint="@color/white"
-                android:contentDescription="@string/content_desc_play_pause"
-                android:layout_marginEnd="@dimen/button_spacing"
-                android:scaleType="centerInside" />
+                android:layout_marginEnd="@dimen/button_spacing">
+
+                <ImageButton
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_play"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_play_pause"
+                    android:scaleType="centerInside" />
+
+                <TextView
+                    android:id="@+id/speedOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    android:background="@drawable/button_background" />
+            </FrameLayout>
 
             <!-- 3. Plus/Faster button -->
             <ImageButton
