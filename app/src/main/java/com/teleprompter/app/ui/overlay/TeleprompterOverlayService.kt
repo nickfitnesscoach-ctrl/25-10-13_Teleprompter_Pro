@@ -60,7 +60,9 @@ class TeleprompterOverlayService : LifecycleService() {
 
     // Resize state
     private var isResizing = false
+    private var initialResizeTouchX = 0f
     private var initialResizeTouchY = 0f
+    private var initialWidth = 0
     private var initialHeight = 0
 
     // Text size pinch-to-zoom
@@ -87,6 +89,11 @@ class TeleprompterOverlayService : LifecycleService() {
     private var scrollView: ScrollView? = null
     private var speedIndicator: TextView? = null
     private var speedOverlay: TextView? = null
+
+    // Button wrapping
+    private var speedControlRow: View? = null
+    private var mainControlRow: View? = null
+    private val minWidthForSingleRow = 350 // dp - minimum width to show all buttons in one row
 
     // Speed overlay timer
     private val speedOverlayHandler = Handler(Looper.getMainLooper())
@@ -160,16 +167,16 @@ class TeleprompterOverlayService : LifecycleService() {
         // Create layout params - always use TYPE_APPLICATION_OVERLAY for Android O+
         val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-        // Load saved position and height synchronously
+        // Load saved position and size synchronously
         val (savedX, savedY) = runBlocking {
             overlayPreferences.getPosition()
         }
-        val savedHeight = runBlocking {
-            overlayPreferences.getHeight()
+        val (savedWidth, savedHeight) = runBlocking {
+            overlayPreferences.getSize()
         }
 
         layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            savedWidth,
             savedHeight,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -202,24 +209,37 @@ class TeleprompterOverlayService : LifecycleService() {
         scriptTextView = view.findViewById(R.id.scriptTextView)
         speedIndicator = view.findViewById(R.id.speedIndicator)
         speedOverlay = view.findViewById(R.id.speedOverlay)
+        speedControlRow = view.findViewById(R.id.speedControlRow)
+        mainControlRow = view.findViewById(R.id.mainControlRow)
+
         val btnPlayPause = view.findViewById<ImageButton>(R.id.btnPlayPause)
         val btnSlower = view.findViewById<ImageButton>(R.id.btnSlower)
         val btnFaster = view.findViewById<ImageButton>(R.id.btnFaster)
         val btnMinimize = view.findViewById<ImageButton>(R.id.btnMinimize)
 
-        // Setup button listeners
-        btnPlayPause?.setOnClickListener {
+        // Setup duplicate buttons in top row
+        val btnSlowerTop = view.findViewById<ImageButton>(R.id.btnSlowerTop)
+        val btnPlayPauseTop = view.findViewById<ImageButton>(R.id.btnPlayPauseTop)
+        val btnFasterTop = view.findViewById<ImageButton>(R.id.btnFasterTop)
+
+        // Setup button listeners for both main and top row buttons
+        val playPauseClickListener = View.OnClickListener {
             if (isScrolling) {
                 stopScrolling()
-                btnPlayPause.setImageResource(android.R.drawable.ic_media_play)
+                btnPlayPause?.setImageResource(android.R.drawable.ic_media_play)
+                btnPlayPauseTop?.setImageResource(android.R.drawable.ic_media_play)
             } else {
                 startScrolling()
-                btnPlayPause.setImageResource(android.R.drawable.ic_media_pause)
+                btnPlayPause?.setImageResource(android.R.drawable.ic_media_pause)
+                btnPlayPauseTop?.setImageResource(android.R.drawable.ic_media_pause)
             }
         }
 
+        btnPlayPause?.setOnClickListener(playPauseClickListener)
+        btnPlayPauseTop?.setOnClickListener(playPauseClickListener)
+
         // Setup slower button with hold functionality
-        btnSlower?.setOnTouchListener { _, event ->
+        val slowerTouchListener = View.OnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     decreaseSpeed()
@@ -234,8 +254,11 @@ class TeleprompterOverlayService : LifecycleService() {
             }
         }
 
+        btnSlower?.setOnTouchListener(slowerTouchListener)
+        btnSlowerTop?.setOnTouchListener(slowerTouchListener)
+
         // Setup faster button with hold functionality
-        btnFaster?.setOnTouchListener { _, event ->
+        val fasterTouchListener = View.OnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     increaseSpeed()
@@ -249,6 +272,9 @@ class TeleprompterOverlayService : LifecycleService() {
                 else -> false
             }
         }
+
+        btnFaster?.setOnTouchListener(fasterTouchListener)
+        btnFasterTop?.setOnTouchListener(fasterTouchListener)
 
         // Setup drag button
         val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
@@ -278,6 +304,43 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Update speed indicator
         updateSpeedIndicator()
+
+        // Setup layout change listener for button wrapping
+        overlayView?.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+            val width = right - left
+            updateButtonLayout(width)
+        }
+    }
+
+    /**
+     * Update button layout based on overlay width
+     */
+    private fun updateButtonLayout(widthPx: Int) {
+        val view = overlayView ?: return
+        val density = resources.displayMetrics.density
+        val widthDp = widthPx / density
+
+        val btnSlower = view.findViewById<ImageButton>(R.id.btnSlower)
+        val playPauseFrame = view.findViewById<View>(R.id.playPauseFrame)
+        val btnFaster = view.findViewById<ImageButton>(R.id.btnFaster)
+
+        Log.d("TeleprompterService", "updateButtonLayout: widthDp=$widthDp, minWidth=$minWidthForSingleRow")
+
+        if (widthDp < minWidthForSingleRow) {
+            // Narrow: show speed controls in top row, hide from main row
+            Log.d("TeleprompterService", "Narrow mode: showing top row")
+            speedControlRow?.visibility = View.VISIBLE
+            btnSlower?.visibility = View.GONE
+            playPauseFrame?.visibility = View.GONE
+            btnFaster?.visibility = View.GONE
+        } else {
+            // Wide: show all buttons in main row, hide top row
+            Log.d("TeleprompterService", "Wide mode: showing main row only")
+            speedControlRow?.visibility = View.GONE
+            btnSlower?.visibility = View.VISIBLE
+            playPauseFrame?.visibility = View.VISIBLE
+            btnFaster?.visibility = View.VISIBLE
+        }
     }
 
     /**
@@ -473,16 +536,16 @@ class TeleprompterOverlayService : LifecycleService() {
         speedOverlayRunnable?.let { speedOverlayHandler.removeCallbacks(it) }
 
         // Hide play button and show speed overlay
-        overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = android.view.View.GONE
+        overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = View.GONE
         speedOverlay?.apply {
             text = scrollSpeed.toString()
-            visibility = android.view.View.VISIBLE
+            visibility = View.VISIBLE
         }
 
         // Hide after 0.5 seconds and show play button again
         speedOverlayRunnable = Runnable {
-            speedOverlay?.visibility = android.view.View.GONE
-            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = android.view.View.VISIBLE
+            speedOverlay?.visibility = View.GONE
+            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)?.visibility = View.VISIBLE
         }
         speedOverlayHandler.postDelayed(speedOverlayRunnable!!, 500)
     }
@@ -583,7 +646,7 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
-     * Handle touch events for resizing overlay
+     * Handle touch events for resizing overlay (diagonal resize like window corner)
      */
     private fun handleResizeTouch(event: MotionEvent): Boolean {
         val params = layoutParams ?: return false
@@ -591,27 +654,34 @@ class TeleprompterOverlayService : LifecycleService() {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 isResizing = true
+                initialResizeTouchX = event.rawX
                 initialResizeTouchY = event.rawY
+                initialWidth = params.width
                 initialHeight = params.height
-                Log.d("TeleprompterService", "Started resizing from height: $initialHeight")
+                Log.d("TeleprompterService", "Started resizing from width: $initialWidth, height: $initialHeight")
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (isResizing) {
+                    val deltaX = (event.rawX - initialResizeTouchX).toInt()
                     val deltaY = (event.rawY - initialResizeTouchY).toInt()
+
+                    val newWidth = initialWidth + deltaX
                     val newHeight = initialHeight + deltaY
 
                     // Get screen dimensions
                     val displayMetrics = resources.displayMetrics
+                    val screenWidth = displayMetrics.widthPixels
                     val screenHeight = displayMetrics.heightPixels
 
-                    // Set min/max constraints (100dp to screen height)
-                    val minHeight = (100 * displayMetrics.density).toInt()
-                    val maxHeight = screenHeight
+                    // Set min/max constraints
+                    val minWidth = (250 * displayMetrics.density).toInt()
+                    val minHeight = (150 * displayMetrics.density).toInt()
 
-                    // Constrain height
-                    params.height = newHeight.coerceIn(minHeight, maxHeight)
+                    // Constrain width and height
+                    params.width = newWidth.coerceIn(minWidth, screenWidth)
+                    params.height = newHeight.coerceIn(minHeight, screenHeight)
 
                     // Update view layout
                     overlayView?.let { windowManager.updateViewLayout(it, params) }
@@ -623,10 +693,10 @@ class TeleprompterOverlayService : LifecycleService() {
                 if (isResizing) {
                     isResizing = false
 
-                    // Save height to preferences
+                    // Save width and height to preferences
                     lifecycleScope.launch {
-                        overlayPreferences.saveOverlayHeight(params.height)
-                        Log.d("TeleprompterService", "Saved overlay height: ${params.height}")
+                        overlayPreferences.saveOverlaySize(params.width, params.height)
+                        Log.d("TeleprompterService", "Saved overlay size: width=${params.width}, height=${params.height}")
                     }
                 }
                 return true

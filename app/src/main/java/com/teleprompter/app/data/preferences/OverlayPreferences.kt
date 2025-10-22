@@ -20,12 +20,14 @@ class OverlayPreferences(private val context: Context) {
     companion object {
         private val OVERLAY_X = intPreferencesKey("overlay_x")
         private val OVERLAY_Y = intPreferencesKey("overlay_y")
+        private val OVERLAY_WIDTH = intPreferencesKey("overlay_width")
         private val OVERLAY_HEIGHT = intPreferencesKey("overlay_height")
         private val TEXT_SIZE = floatPreferencesKey("text_size")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
         const val DEFAULT_Y = 100
+        const val DEFAULT_WIDTH = -1 // -1 means MATCH_PARENT
         const val DEFAULT_HEIGHT = 800 // Default height in pixels (approximately 400dp on most devices)
         const val DEFAULT_TEXT_SIZE = 28f // Default text size in sp
     }
@@ -42,6 +44,13 @@ class OverlayPreferences(private val context: Context) {
      */
     val overlayY: Flow<Int> = context.dataStore.data.map { preferences ->
         preferences[OVERLAY_Y] ?: DEFAULT_Y
+    }
+
+    /**
+     * Get saved overlay width
+     */
+    val overlayWidth: Flow<Int> = context.dataStore.data.map { preferences ->
+        preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
     }
 
     /**
@@ -62,10 +71,29 @@ class OverlayPreferences(private val context: Context) {
     }
 
     /**
+     * Save overlay width
+     */
+    suspend fun saveOverlayWidth(width: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[OVERLAY_WIDTH] = width
+        }
+    }
+
+    /**
      * Save overlay height
      */
     suspend fun saveOverlayHeight(height: Int) {
         context.dataStore.edit { preferences ->
+            preferences[OVERLAY_HEIGHT] = height
+        }
+    }
+
+    /**
+     * Save overlay size (width and height)
+     */
+    suspend fun saveOverlaySize(width: Int, height: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[OVERLAY_WIDTH] = width
             preferences[OVERLAY_HEIGHT] = height
         }
     }
@@ -86,6 +114,19 @@ class OverlayPreferences(private val context: Context) {
     }
 
     /**
+     * Get width synchronously (for initial load)
+     */
+    suspend fun getWidth(): Int {
+        var width = DEFAULT_WIDTH
+
+        context.dataStore.edit { preferences ->
+            width = preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
+        }
+
+        return width
+    }
+
+    /**
      * Get height synchronously (for initial load)
      */
     suspend fun getHeight(): Int {
@@ -96,6 +137,21 @@ class OverlayPreferences(private val context: Context) {
         }
 
         return height
+    }
+
+    /**
+     * Get size synchronously (for initial load)
+     */
+    suspend fun getSize(): Pair<Int, Int> {
+        var width = DEFAULT_WIDTH
+        var height = DEFAULT_HEIGHT
+
+        context.dataStore.edit { preferences ->
+            width = preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
+            height = preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+        }
+
+        return Pair(width, height)
     }
 
     /**
