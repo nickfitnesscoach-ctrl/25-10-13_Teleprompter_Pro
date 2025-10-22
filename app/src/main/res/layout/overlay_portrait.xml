@@ -61,9 +61,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:layout_marginTop="16dp"
-            android:padding="12dp"
+            android:padding="8dp"
             android:background="@drawable/control_panel_background">
 
             <!-- 1. Minus/Slower button -->
@@ -99,8 +99,13 @@
                 android:src="@drawable/ic_plus"
                 android:tint="@color/white"
                 android:contentDescription="@string/content_desc_faster"
-                android:layout_marginEnd="@dimen/button_spacing"
                 android:scaleType="centerInside" />
+
+            <!-- Spacer between groups -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
 
             <!-- 4. Close button -->
             <ImageButton

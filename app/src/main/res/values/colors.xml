@@ -2,8 +2,8 @@
 <resources>
     <!-- Primary Colors (exact from Figma design) -->
     <color name="overlay_background">#00000000</color> <!-- Transparent - no background -->
-    <color name="text_area_background">#DD000000</color> <!-- Black with high opacity for readability -->
-    <color name="control_panel_background">#DD000000</color> <!-- Black with high opacity -->
+    <color name="text_area_background">#80000000</color> <!-- Black with 50% opacity - more transparent -->
+    <color name="control_panel_background">#80000000</color> <!-- Black with 50% opacity - more transparent -->
     <color name="button_background">#66FFFFFF</color> <!-- White with 40% opacity -->
     <color name="button_background_full">#FFFFFF</color>
 

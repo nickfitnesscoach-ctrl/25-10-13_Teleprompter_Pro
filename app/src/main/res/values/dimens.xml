@@ -3,18 +3,19 @@
     <!-- Figma Design Dimensions -->
 
     <!-- Overlay dimensions -->
-    <dimen name="overlay_padding">16dp</dimen>
-    <dimen name="overlay_gap">12dp</dimen>
+    <dimen name="overlay_padding">8dp</dimen>
+    <dimen name="overlay_gap">8dp</dimen>
 
     <!-- Control panel dimensions -->
-    <dimen name="control_panel_padding">12dp</dimen>
-    <dimen name="control_panel_gap">12dp</dimen>
+    <dimen name="control_panel_padding">8dp</dimen>
+    <dimen name="control_panel_gap">8dp</dimen>
     <dimen name="control_panel_corner_radius">20dp</dimen>
     <dimen name="control_panel_height">101dp</dimen>
 
     <!-- Button dimensions -->
-    <dimen name="button_size">40dp</dimen>
-    <dimen name="button_spacing">2dp</dimen>
+    <dimen name="button_size">30dp</dimen>
+    <dimen name="button_spacing">8dp</dimen>
+    <dimen name="button_group_spacing">24dp</dimen>
 
     <!-- Text area dimensions -->
     <dimen name="text_area_corner_radius">16dp</dimen>
