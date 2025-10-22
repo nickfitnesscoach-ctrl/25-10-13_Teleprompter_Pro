@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -20,11 +21,13 @@ class OverlayPreferences(private val context: Context) {
         private val OVERLAY_X = intPreferencesKey("overlay_x")
         private val OVERLAY_Y = intPreferencesKey("overlay_y")
         private val OVERLAY_HEIGHT = intPreferencesKey("overlay_height")
+        private val TEXT_SIZE = floatPreferencesKey("text_size")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
         const val DEFAULT_Y = 100
         const val DEFAULT_HEIGHT = 800 // Default height in pixels (approximately 400dp on most devices)
+        const val DEFAULT_TEXT_SIZE = 28f // Default text size in sp
     }
 
     /**
@@ -102,5 +105,27 @@ class OverlayPreferences(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences.remove(OVERLAY_HEIGHT)
         }
+    }
+
+    /**
+     * Save text size
+     */
+    suspend fun saveTextSize(textSize: Float) {
+        context.dataStore.edit { preferences ->
+            preferences[TEXT_SIZE] = textSize
+        }
+    }
+
+    /**
+     * Get text size synchronously (for initial load)
+     */
+    suspend fun getTextSize(): Float {
+        var textSize = DEFAULT_TEXT_SIZE
+
+        context.dataStore.edit { preferences ->
+            textSize = preferences[TEXT_SIZE] ?: DEFAULT_TEXT_SIZE
+        }
+
+        return textSize
     }
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Figma Design Dimensions -->
+
+    <!-- Overlay dimensions -->
+    <dimen name="overlay_padding">16dp</dimen>
+    <dimen name="overlay_gap">12dp</dimen>
+
+    <!-- Control panel dimensions -->
+    <dimen name="control_panel_padding">12dp</dimen>
+    <dimen name="control_panel_gap">12dp</dimen>
+    <dimen name="control_panel_corner_radius">20dp</dimen>
+    <dimen name="control_panel_height">101dp</dimen>
+
+    <!-- Button dimensions -->
+    <dimen name="button_size">85dp</dimen>
+    <dimen name="button_spacing">5dp</dimen>
+
+    <!-- Text area dimensions -->
+    <dimen name="text_area_corner_radius">16dp</dimen>
+    <dimen name="text_area_min_height">200dp</dimen>
+
+    <!-- Common dimensions -->
+    <dimen name="spacing_small">8dp</dimen>
+    <dimen name="spacing_medium">12dp</dimen>
+    <dimen name="spacing_large">16dp</dimen>
+</resources>

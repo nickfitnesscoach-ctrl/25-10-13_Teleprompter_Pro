@@ -18,6 +18,7 @@ import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.LinearInterpolator
@@ -61,6 +62,15 @@ class TeleprompterOverlayService : LifecycleService() {
     private var isResizing = false
     private var initialResizeTouchY = 0f
     private var initialHeight = 0
+
+    // Text size pinch-to-zoom
+    private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private var currentTextSize = 28f // Base text size in sp
+    private val minTextSize = 16f
+    private val maxTextSize = 72f
+    private var lastSavedTextSize = 28f // For throttling saves
+    private var initialSpan = 0f // Initial distance between fingers
+    private var baseTextSize = 28f // Text size at start of gesture
 
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
@@ -163,6 +173,7 @@ class TeleprompterOverlayService : LifecycleService() {
             savedHeight,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
@@ -253,8 +264,74 @@ class TeleprompterOverlayService : LifecycleService() {
             stopSelf()
         }
 
+        // Setup pinch-to-zoom for text size
+        setupTextSizeGesture()
+
         // Update speed indicator
         updateSpeedIndicator()
+    }
+
+    /**
+     * Setup pinch-to-zoom gesture for text size
+     */
+    private fun setupTextSizeGesture() {
+        val textView = scriptTextView ?: return
+
+        // Load saved text size
+        lifecycleScope.launch {
+            currentTextSize = overlayPreferences.getTextSize()
+            textView.textSize = currentTextSize
+        }
+
+        // Initialize ScaleGestureDetector with smooth scaling using span (distance between fingers)
+        scaleGestureDetector = ScaleGestureDetector(this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                    // Store initial distance between fingers and current text size
+                    initialSpan = detector.currentSpan
+                    baseTextSize = currentTextSize
+                    Log.d("TeleprompterService", "Scale begin - span: $initialSpan, baseSize: $baseTextSize")
+                    return true
+                }
+
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    if (initialSpan == 0f) return false
+
+                    // Calculate scale based on change in distance between fingers
+                    val currentSpan = detector.currentSpan
+                    val scaleFactor = currentSpan / initialSpan
+
+                    // Apply scale to base text size (size at start of gesture)
+                    val newTextSize = baseTextSize * scaleFactor
+                    currentTextSize = newTextSize.coerceIn(minTextSize, maxTextSize)
+
+                    textView.textSize = currentTextSize
+
+                    // Save only if changed significantly (throttle saves)
+                    if (kotlin.math.abs(currentTextSize - lastSavedTextSize) > 0.5f) {
+                        lastSavedTextSize = currentTextSize
+                        lifecycleScope.launch {
+                            overlayPreferences.saveTextSize(currentTextSize)
+                        }
+                    }
+
+                    return true
+                }
+
+                override fun onScaleEnd(detector: ScaleGestureDetector) {
+                    // Final save when gesture ends
+                    lifecycleScope.launch {
+                        overlayPreferences.saveTextSize(currentTextSize)
+                    }
+                    Log.d("TeleprompterService", "Scale end - final size: $currentTextSize")
+                }
+            })
+
+        // Set touch listener on TextView
+        textView.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            true
+        }
     }
 
     /**

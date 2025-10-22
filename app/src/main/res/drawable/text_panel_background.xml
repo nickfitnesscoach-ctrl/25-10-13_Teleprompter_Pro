@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Background color: black with 45% opacity -->
+    <solid android:color="@color/text_area_background" />
+
+    <!-- Corner radius: 16dp -->
+    <corners android:radius="@dimen/text_area_corner_radius" />
+
+</shape>

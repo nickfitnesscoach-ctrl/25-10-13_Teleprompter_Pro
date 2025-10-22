@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary Colors -->
-    <color name="overlay_background">#80000000</color>
+    <!-- Primary Colors (from Figma design) -->
+    <color name="overlay_background">#FFFFFF</color>
+    <color name="text_area_background">#73000000</color> <!-- #000000 with 45% opacity -->
+    <color name="control_panel_background">#FFFFFF</color>
+    <color name="button_background">#E6FFFFFF</color> <!-- #FFFFFF with 90% opacity -->
+    <color name="button_background_full">#FFFFFF</color>
+
+    <!-- Legacy colors (keep for backward compatibility) -->
     <color name="drag_handle_background">#40FFFFFF</color>
     <color name="drag_handle_indicator">#80FFFFFF</color>
 
