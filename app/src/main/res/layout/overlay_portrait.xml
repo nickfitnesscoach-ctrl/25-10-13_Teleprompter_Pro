@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/overlay_padding">
 
         <!-- Drag handle bar -->
         <LinearLayout
@@ -28,13 +28,14 @@
                 android:layout_gravity="center" />
         </LinearLayout>
 
-        <!-- ScrollView for teleprompter text -->
+        <!-- ScrollView for teleprompter text with Figma background -->
         <ScrollView
             android:id="@+id/scriptScrollView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:background="@drawable/text_panel_background"
             android:scrollbars="none"
             android:fillViewport="false"
             android:overScrollMode="never">
@@ -64,68 +65,72 @@
             android:layout_marginTop="16dp"
             android:padding="8dp">
 
-            <!-- Slower button -->
+            <!-- Slower button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnSlower"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_media_previous"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_minus"
                 android:contentDescription="@string/content_desc_slower"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="center" />
 
-            <!-- Play/Pause button -->
+            <!-- Play/Pause button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnPlayPause"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_media_play"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_play"
                 android:contentDescription="@string/content_desc_play_pause"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp" />
+                android:layout_marginStart="@dimen/button_spacing"
+                android:layout_marginEnd="@dimen/button_spacing"
+                android:scaleType="center" />
 
-            <!-- Faster button -->
+            <!-- Faster button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnFaster"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_media_next"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_plus"
                 android:contentDescription="@string/content_desc_faster"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="@dimen/button_spacing"
+                android:scaleType="center" />
 
-            <!-- Drag button -->
+            <!-- Drag button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnDrag"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/drag_button_background"
-                android:src="@drawable/ic_drag_handle"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_move"
                 android:contentDescription="@string/content_desc_drag"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/button_spacing"
                 android:scaleType="center" />
 
-            <!-- Resize button -->
+            <!-- Resize button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnResize"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/drag_button_background"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
                 android:src="@drawable/ic_resize_vertical"
                 android:contentDescription="@string/content_desc_resize"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/button_spacing"
                 android:scaleType="center" />
 
-            <!-- Minimize button -->
+            <!-- Close button (Figma design) -->
             <ImageButton
                 android:id="@+id/btnMinimize"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:layout_width="@dimen/button_size"
+                android:layout_height="@dimen/button_size"
+                android:background="@color/button_background"
+                android:src="@drawable/ic_close"
                 android:contentDescription="@string/content_desc_minimize"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="@dimen/button_spacing"
+                android:scaleType="center" />
         </LinearLayout>
 
         <!-- Speed indicator -->
