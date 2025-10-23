@@ -8,147 +8,224 @@
     <!-- Main content container for landscape -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="@dimen/overlay_padding"
-        android:gravity="center_vertical">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/overlay_padding">
 
-        <!-- Text content (takes 70% of width) -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.7"
-            android:orientation="vertical">
+        <!-- ScrollView for teleprompter text with Figma background -->
+        <ScrollView
+            android:id="@+id/scriptScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/text_panel_background"
+            android:scrollbars="none"
+            android:fillViewport="false"
+            android:overScrollMode="never">
 
-            <!-- Drag handle bar -->
-            <LinearLayout
-                android:id="@+id/dragHandle"
-                android:layout_width="match_parent"
-                android:layout_height="24dp"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:background="@color/drag_handle_background">
-
-                <View
-                    android:layout_width="40dp"
-                    android:layout_height="4dp"
-                    android:background="@color/drag_handle_indicator"
-                    android:layout_gravity="center" />
-            </LinearLayout>
-
-            <!-- ScrollView for teleprompter text (narrower in landscape) with Figma background -->
-            <ScrollView
-                android:id="@+id/scriptScrollView"
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:background="@drawable/text_panel_background"
-                android:scrollbars="none"
-                android:fillViewport="false"
-                android:overScrollMode="never">
-
-                <TextView
-                    android:id="@+id/scriptTextView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Your teleprompter text will appear here..."
-                    android:textSize="22sp"
-                    android:textColor="@color/text_primary"
-                    android:gravity="center_vertical"
-                    android:lineSpacingMultiplier="1.4"
-                    android:padding="16dp"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="999999"
-                    android:ellipsize="none" />
-            </ScrollView>
-
-            <!-- Speed indicator -->
             <TextView
-                android:id="@+id/speedIndicator"
-                android:layout_width="wrap_content"
+                android:id="@+id/scriptTextView"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/default_speed_indicator"
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
-                android:layout_gravity="center"
-                android:layout_marginTop="8dp" />
-        </LinearLayout>
+                android:text="Your teleprompter text will appear here..."
+                android:textSize="22sp"
+                android:textColor="@color/text_primary"
+                android:gravity="start|top"
+                android:lineSpacingMultiplier="1.3"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:fontFamily="sans-serif"
+                android:textStyle="bold"
+                android:maxLines="999999"
+                android:ellipsize="none" />
+        </ScrollView>
 
-        <!-- Vertical control buttons on the right (takes 30% of width) -->
+        <!-- Control buttons -->
         <LinearLayout
             android:id="@+id/controlButtons"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.3"
             android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp">
+            android:layout_marginTop="8dp"
+            android:padding="8dp"
+            android:background="@drawable/control_panel_background">
 
-            <!-- Play/Pause button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnPlayPause"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_play"
-                android:contentDescription="@string/content_desc_play_pause"
-                android:layout_marginBottom="@dimen/spacing_small"
-                android:scaleType="center" />
+            <!-- Row 1: Speed controls (initially hidden, shown when narrow) -->
+            <LinearLayout
+                android:id="@+id/speedControlRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone">
 
-            <!-- Slower button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnSlower"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_minus"
-                android:contentDescription="@string/content_desc_slower"
-                android:layout_marginBottom="@dimen/spacing_small"
-                android:scaleType="center" />
+                <!-- 1. Minus/Slower button -->
+                <ImageButton
+                    android:id="@+id/btnSlowerTop"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_minus"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_slower"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
 
-            <!-- Faster button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnFaster"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_plus"
-                android:contentDescription="@string/content_desc_faster"
-                android:layout_marginBottom="@dimen/spacing_small"
-                android:scaleType="center" />
+                <!-- 2. Play/Pause button with speed overlay -->
+                <FrameLayout
+                    android:id="@+id/btnPlayPauseTopFrame"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:layout_marginEnd="@dimen/button_spacing">
 
-            <!-- Drag button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnDrag"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_move"
-                android:contentDescription="@string/content_desc_drag"
-                android:layout_marginBottom="@dimen/spacing_small"
-                android:scaleType="center" />
+                    <ImageButton
+                        android:id="@+id/btnPlayPauseTop"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/button_background"
+                        android:src="@drawable/ic_play"
+                        android:tint="@color/white"
+                        android:contentDescription="@string/content_desc_play_pause"
+                        android:scaleType="centerInside" />
+                </FrameLayout>
 
-            <!-- Resize button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnResize"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_resize_vertical"
-                android:contentDescription="@string/content_desc_resize"
-                android:layout_marginBottom="@dimen/spacing_small"
-                android:scaleType="center" />
+                <!-- 3. Plus/Faster button -->
+                <ImageButton
+                    android:id="@+id/btnFasterTop"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_plus"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_faster"
+                    android:scaleType="centerInside" />
+            </LinearLayout>
 
-            <!-- Close button (Figma design) -->
-            <ImageButton
-                android:id="@+id/btnMinimize"
-                android:layout_width="@dimen/button_size"
-                android:layout_height="@dimen/button_size"
-                android:background="@color/button_background"
-                android:src="@drawable/ic_close"
-                android:contentDescription="@string/content_desc_minimize"
-                android:scaleType="center" />
+            <!-- Row 2: All buttons in one row -->
+            <LinearLayout
+                android:id="@+id/mainControlRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <!-- Left group: Speed controls -->
+                <ImageButton
+                    android:id="@+id/btnSlower"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_minus"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_slower"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <FrameLayout
+                    android:id="@+id/playPauseFrame"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:layout_marginEnd="@dimen/button_spacing">
+
+                    <ImageButton
+                        android:id="@+id/btnPlayPause"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/button_background"
+                        android:src="@drawable/ic_play"
+                        android:tint="@color/white"
+                        android:contentDescription="@string/content_desc_play_pause"
+                        android:scaleType="centerInside" />
+
+                    <TextView
+                        android:id="@+id/speedOverlay"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        android:background="@drawable/button_background" />
+                </FrameLayout>
+
+                <ImageButton
+                    android:id="@+id/btnFaster"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_plus"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_faster"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <!-- Spacer -->
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <!-- Right group: Window controls -->
+                <ImageButton
+                    android:id="@+id/btnMinimize"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_close"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_minimize"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
+                    android:id="@+id/btnPip"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_pip"
+                    android:tint="@color/white"
+                    android:contentDescription="Picture in Picture"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
+                    android:id="@+id/btnDrag"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_move"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_drag"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
+                    android:id="@+id/btnResize"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_resize_vertical"
+                    android:tint="@color/white"
+                    android:contentDescription="@string/content_desc_resize"
+                    android:scaleType="centerInside" />
+            </LinearLayout>
         </LinearLayout>
+
+        <!-- Speed indicator -->
+        <TextView
+            android:id="@+id/speedIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/default_speed_indicator"
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:visibility="gone" />
     </LinearLayout>
 
 </FrameLayout>

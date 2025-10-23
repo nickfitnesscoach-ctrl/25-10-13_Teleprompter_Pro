@@ -246,6 +246,9 @@ class MainActivity : ComponentActivity() {
         } else {
             startService(intent)
         }
+
+        // Minimize main app to show only the overlay
+        moveTaskToBack(true)
     }
 
     private fun openScriptEditor(script: Script?) {

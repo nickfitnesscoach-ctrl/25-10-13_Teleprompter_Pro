@@ -67,7 +67,8 @@
                 android:textSize="12sp"
                 android:textColor="#80FFFFFF"
                 android:layout_gravity="center"
-                android:layout_marginTop="8dp" />
+                android:layout_marginTop="8dp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Vertical control buttons on the right (takes 30% of width) -->

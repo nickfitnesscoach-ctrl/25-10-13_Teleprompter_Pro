@@ -10,7 +10,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -18,7 +20,9 @@ import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.OrientationEventListener
 import android.view.ScaleGestureDetector
+import android.view.Surface
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.LinearInterpolator
@@ -99,6 +103,15 @@ class TeleprompterOverlayService : LifecycleService() {
     private val speedOverlayHandler = Handler(Looper.getMainLooper())
     private var speedOverlayRunnable: Runnable? = null
 
+    // Track current script content
+    private var currentScriptContent: String? = null
+
+    // Orientation listener
+    private var orientationEventListener: OrientationEventListener? = null
+    private var lastOrientation = Configuration.ORIENTATION_UNDEFINED
+    private var pendingOrientationChange: Runnable? = null
+    private val orientationChangeHandler = Handler(Looper.getMainLooper())
+
     override fun onCreate() {
         super.onCreate()
 
@@ -120,11 +133,89 @@ class TeleprompterOverlayService : LifecycleService() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         overlayPreferences = OverlayPreferences(this)
 
+        // Initialize orientation listener
+        setupOrientationListener()
+
         // Create notification channel
         createNotificationChannel()
 
         // Must call startForeground within 5 seconds of service start
         startForeground(Constants.FOREGROUND_SERVICE_ID, createNotification())
+    }
+
+    /**
+     * Setup orientation listener to detect screen rotation
+     */
+    private fun setupOrientationListener() {
+        lastOrientation = getCurrentOrientation()
+
+        orientationEventListener = object : OrientationEventListener(this) {
+            override fun onOrientationChanged(angle: Int) {
+                if (angle == ORIENTATION_UNKNOWN) return
+
+                // Get the actual display rotation
+                val newOrientation = getCurrentOrientation()
+
+                // Check if orientation actually changed
+                if (newOrientation != lastOrientation && overlayView != null) {
+                    // Cancel any pending orientation change
+                    pendingOrientationChange?.let { orientationChangeHandler.removeCallbacks(it) }
+
+                    // Schedule orientation change with debounce to avoid flickering
+                    pendingOrientationChange = Runnable {
+                        // Double check orientation hasn't changed back
+                        val confirmedOrientation = getCurrentOrientation()
+
+                        if (confirmedOrientation == newOrientation && confirmedOrientation != lastOrientation) {
+                            lastOrientation = newOrientation
+                            Log.d("TeleprompterService", "Orientation changed to: $newOrientation (angle: $angle, rotation: ${getDisplayRotation()})")
+
+                            // Recreate overlay with new orientation
+                            recreateOverlay()
+                        }
+                    }
+
+                    // Wait 500ms to confirm orientation change (longer delay to reduce flickering)
+                    orientationChangeHandler.postDelayed(pendingOrientationChange!!, 500)
+                }
+            }
+        }
+
+        // Enable the listener if it can detect orientation
+        if (orientationEventListener?.canDetectOrientation() == true) {
+            orientationEventListener?.enable()
+            Log.d("TeleprompterService", "Orientation listener enabled")
+        } else {
+            Log.w("TeleprompterService", "Cannot detect orientation changes")
+        }
+    }
+
+    /**
+     * Get current display rotation
+     */
+    @Suppress("DEPRECATION")
+    private fun getDisplayRotation(): Int {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val display = windowManager.defaultDisplay
+                display?.rotation ?: Surface.ROTATION_0
+            } else {
+                windowManager.defaultDisplay.rotation
+            }
+        } catch (e: Exception) {
+            Log.e("TeleprompterService", "Error getting display rotation", e)
+            Surface.ROTATION_0
+        }
+    }
+
+    /**
+     * Get current orientation based on display rotation
+     */
+    private fun getCurrentOrientation(): Int {
+        return when (getDisplayRotation()) {
+            Surface.ROTATION_90, Surface.ROTATION_270 -> Configuration.ORIENTATION_LANDSCAPE
+            else -> Configuration.ORIENTATION_PORTRAIT
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -134,6 +225,9 @@ class TeleprompterOverlayService : LifecycleService() {
             // Get script content from intent
             val scriptContent = intent?.getStringExtra(Constants.EXTRA_SCRIPT_CONTENT)
                 ?: getString(R.string.default_teleprompter_text)
+
+            // Save current script content
+            currentScriptContent = scriptContent
 
             // Create and show overlay
             createOverlay()
@@ -149,6 +243,52 @@ class TeleprompterOverlayService : LifecycleService() {
         return START_STICKY
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        // Recreate overlay with new orientation
+        recreateOverlay()
+    }
+
+    /**
+     * Recreate overlay when configuration changes (e.g., orientation)
+     */
+    private fun recreateOverlay() {
+        // Save current state
+        val wasScrolling = isScrolling
+        val currentSpeed = scrollSpeed
+        val scrollPosition = scrollView?.scrollY ?: 0
+
+        // Remove old overlay
+        overlayView?.let { view ->
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {
+                // View already removed, ignore
+            }
+        }
+        overlayView = null
+
+        // Recreate overlay
+        createOverlay()
+
+        // Restore state
+        scrollSpeed = currentSpeed
+        scriptTextView?.text = currentScriptContent
+
+        // Restore scroll position after layout
+        scrollView?.post {
+            scrollView?.scrollTo(0, scrollPosition)
+
+            // Restore scrolling state
+            if (wasScrolling) {
+                startScrolling()
+                overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
+                    ?.setImageResource(android.R.drawable.ic_media_pause)
+            }
+        }
+    }
+
     override fun onBind(intent: Intent): IBinder? {
         return super.onBind(intent)
     }
@@ -158,11 +298,23 @@ class TeleprompterOverlayService : LifecycleService() {
      */
     @SuppressLint("InflateParams")
     private fun createOverlay() {
-        if (overlayView != null) return
+        if (overlayView != null && overlayView?.parent != null) return
 
         // Inflate layout without parent (null is correct for WindowManager overlays)
         val inflater = LayoutInflater.from(this)
-        overlayView = inflater.inflate(R.layout.overlay_portrait, null)
+
+        // Determine layout based on current display rotation
+        val currentOrientation = getCurrentOrientation()
+        lastOrientation = currentOrientation
+
+        val layoutRes = if (currentOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            R.layout.overlay_landscape
+        } else {
+            R.layout.overlay_portrait
+        }
+
+        Log.d("TeleprompterService", "Creating overlay with orientation: $currentOrientation (rotation: ${getDisplayRotation()}), layout: $layoutRes")
+        overlayView = inflater.inflate(layoutRes, null)
 
         // Create layout params - always use TYPE_APPLICATION_OVERLAY for Android O+
         val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -175,9 +327,21 @@ class TeleprompterOverlayService : LifecycleService() {
             overlayPreferences.getSize()
         }
 
+        // Get screen dimensions
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+
+        // Calculate max height (leave space for status bar and navigation bar)
+        val maxHeight = (screenHeight * 0.85).toInt() // Use 85% of screen height
+
+        // Constrain saved dimensions
+        val finalWidth = if (savedWidth == -1) WindowManager.LayoutParams.MATCH_PARENT else savedWidth.coerceAtMost(screenWidth)
+        val finalHeight = savedHeight.coerceAtMost(maxHeight)
+
         layoutParams = WindowManager.LayoutParams(
-            savedWidth,
-            savedHeight,
+            finalWidth,
+            finalHeight,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -187,7 +351,7 @@ class TeleprompterOverlayService : LifecycleService() {
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = savedX
-            y = savedY
+            y = savedY.coerceAtMost(screenHeight - finalHeight)
         }
 
         // Add view to window
@@ -306,7 +470,7 @@ class TeleprompterOverlayService : LifecycleService() {
         updateSpeedIndicator()
 
         // Setup layout change listener for button wrapping
-        overlayView?.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
+        overlayView?.addOnLayoutChangeListener { _, left, _, right, _, _, _, _, _ ->
             val width = right - left
             updateButtonLayout(width)
         }
@@ -746,6 +910,12 @@ class TeleprompterOverlayService : LifecycleService() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // Disable orientation listener
+        orientationEventListener?.disable()
+        orientationEventListener = null
+        pendingOrientationChange?.let { orientationChangeHandler.removeCallbacks(it) }
+        orientationChangeHandler.removeCallbacksAndMessages(null)
 
         // Stop scrolling
         stopScrolling()
