@@ -7,7 +7,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -609,10 +608,10 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun applyTextAlignment() {
         val textView = scriptTextView ?: return
         val gravity = when (currentAlignment) {
-            0 -> android.view.Gravity.START or android.view.Gravity.TOP
-            1 -> android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.TOP
-            2 -> android.view.Gravity.END or android.view.Gravity.TOP
-            else -> android.view.Gravity.START or android.view.Gravity.TOP
+            0 -> Gravity.START or Gravity.TOP
+            1 -> Gravity.CENTER_HORIZONTAL or Gravity.TOP
+            2 -> Gravity.END or Gravity.TOP
+            else -> Gravity.START or Gravity.TOP
         }
         textView.gravity = gravity
     }

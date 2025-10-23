@@ -13,7 +13,7 @@
     <dimen name="control_panel_height">101dp</dimen>
 
     <!-- Button dimensions -->
-    <dimen name="button_size">30dp</dimen>
+    <dimen name="button_size">28dp</dimen>
     <dimen name="button_spacing">12dp</dimen>
     <dimen name="button_group_spacing">24dp</dimen>
 
