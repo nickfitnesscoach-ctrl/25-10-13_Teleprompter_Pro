@@ -24,6 +24,7 @@ class OverlayPreferences(private val context: Context) {
         private val OVERLAY_WIDTH = intPreferencesKey("overlay_width")
         private val OVERLAY_HEIGHT = intPreferencesKey("overlay_height")
         private val TEXT_SIZE = floatPreferencesKey("text_size")
+        private val TEXT_ALIGNMENT = intPreferencesKey("text_alignment")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
@@ -31,6 +32,7 @@ class OverlayPreferences(private val context: Context) {
         const val DEFAULT_WIDTH = -1 // -1 means MATCH_PARENT
         const val DEFAULT_HEIGHT = 800 // Default height in pixels (approximately 400dp on most devices)
         const val DEFAULT_TEXT_SIZE = 28f // Default text size in sp
+        const val DEFAULT_TEXT_ALIGNMENT = 0 // 0 = start, 1 = center, 2 = end
     }
 
     /**
@@ -184,5 +186,27 @@ class OverlayPreferences(private val context: Context) {
         }
 
         return textSize
+    }
+
+    /**
+     * Save text alignment (0 = start, 1 = center, 2 = end)
+     */
+    suspend fun saveTextAlignment(alignment: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[TEXT_ALIGNMENT] = alignment
+        }
+    }
+
+    /**
+     * Get text alignment synchronously (for initial load)
+     */
+    suspend fun getTextAlignment(): Int {
+        var alignment = DEFAULT_TEXT_ALIGNMENT
+
+        context.dataStore.edit { preferences ->
+            alignment = preferences[TEXT_ALIGNMENT] ?: DEFAULT_TEXT_ALIGNMENT
+        }
+
+        return alignment
     }
 }

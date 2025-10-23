@@ -193,6 +193,17 @@
                     android:scaleType="centerInside" />
 
                 <ImageButton
+                    android:id="@+id/btnAlignText"
+                    android:layout_width="@dimen/button_size"
+                    android:layout_height="@dimen/button_size"
+                    android:background="@drawable/button_background"
+                    android:src="@drawable/ic_align_text"
+                    android:tint="@color/white"
+                    android:contentDescription="Text Alignment"
+                    android:layout_marginEnd="@dimen/button_spacing"
+                    android:scaleType="centerInside" />
+
+                <ImageButton
                     android:id="@+id/btnDrag"
                     android:layout_width="@dimen/button_size"
                     android:layout_height="@dimen/button_size"

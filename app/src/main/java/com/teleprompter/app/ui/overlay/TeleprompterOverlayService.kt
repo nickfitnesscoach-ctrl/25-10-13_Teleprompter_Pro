@@ -79,6 +79,9 @@ class TeleprompterOverlayService : LifecycleService() {
     private var initialSpan = 0f // Initial distance between fingers
     private var baseTextSize = 28f // Text size at start of gesture
 
+    // Text alignment
+    private var currentAlignment = 0 // 0 = start, 1 = center, 2 = end
+
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
     private var isScrolling = false
@@ -467,6 +470,12 @@ class TeleprompterOverlayService : LifecycleService() {
             enterPipMode()
         }
 
+        // Setup text alignment button
+        val btnAlignText = view.findViewById<ImageButton>(R.id.btnAlignText)
+        btnAlignText?.setOnClickListener {
+            toggleTextAlignment()
+        }
+
         // Setup pinch-to-zoom for text size
         setupTextSizeGesture()
 
@@ -573,6 +582,39 @@ class TeleprompterOverlayService : LifecycleService() {
             scaleGestureDetector.onTouchEvent(event)
             true
         }
+
+        // Load saved alignment
+        lifecycleScope.launch {
+            currentAlignment = overlayPreferences.getTextAlignment()
+            applyTextAlignment()
+        }
+    }
+
+    /**
+     * Toggle text alignment (start -> center -> end -> start)
+     */
+    private fun toggleTextAlignment() {
+        currentAlignment = (currentAlignment + 1) % 3
+        applyTextAlignment()
+
+        // Save alignment
+        lifecycleScope.launch {
+            overlayPreferences.saveTextAlignment(currentAlignment)
+        }
+    }
+
+    /**
+     * Apply current text alignment to TextView
+     */
+    private fun applyTextAlignment() {
+        val textView = scriptTextView ?: return
+        val gravity = when (currentAlignment) {
+            0 -> android.view.Gravity.START or android.view.Gravity.TOP
+            1 -> android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.TOP
+            2 -> android.view.Gravity.END or android.view.Gravity.TOP
+            else -> android.view.Gravity.START or android.view.Gravity.TOP
+        }
+        textView.gravity = gravity
     }
 
     /**
@@ -940,7 +982,7 @@ class TeleprompterOverlayService : LifecycleService() {
         val view = inflater.inflate(R.layout.overlay_pip, null)
         pipView = view
 
-        // Setup PIP layout params - small circular icon (slightly larger than app icons)
+        // Setup PIP layout params - circular icon (slightly larger than app icons)
         val pipSize = (64 * resources.displayMetrics.density).toInt()
         val pipParams = WindowManager.LayoutParams(
             pipSize,
