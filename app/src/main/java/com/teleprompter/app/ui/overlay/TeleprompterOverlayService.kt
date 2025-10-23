@@ -27,6 +27,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
@@ -111,6 +112,10 @@ class TeleprompterOverlayService : LifecycleService() {
     private var lastOrientation = Configuration.ORIENTATION_UNDEFINED
     private var pendingOrientationChange: Runnable? = null
     private val orientationChangeHandler = Handler(Looper.getMainLooper())
+
+    // PIP mode state
+    private var isPipMode = false
+    private var pipView: View? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -459,8 +464,7 @@ class TeleprompterOverlayService : LifecycleService() {
         // Setup PIP button (Picture-in-Picture mode)
         val btnPip = view.findViewById<ImageButton>(R.id.btnPip)
         btnPip?.setOnClickListener {
-            // TODO: Implement PIP mode functionality
-            Toast.makeText(this, "PIP mode - coming soon", Toast.LENGTH_SHORT).show()
+            enterPipMode()
         }
 
         // Setup pinch-to-zoom for text size
@@ -882,7 +886,7 @@ class TeleprompterOverlayService : LifecycleService() {
             description = "Keeps teleprompter overlay active"
             setShowBadge(false)
 
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(this)
         }
     }
@@ -906,6 +910,150 @@ class TeleprompterOverlayService : LifecycleService() {
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
+    }
+
+    /**
+     * Enter Picture-in-Picture mode - minimize to small circular icon
+     */
+    private fun enterPipMode() {
+        if (isPipMode) return
+
+        isPipMode = true
+
+        // Stop scrolling when entering PIP
+        if (isScrolling) {
+            stopScrolling()
+        }
+
+        // Remove full overlay
+        overlayView?.let { view ->
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {
+                // View already removed, ignore
+            }
+        }
+
+        // Create PIP view
+        val inflater = LayoutInflater.from(this)
+        @SuppressLint("InflateParams")
+        val view = inflater.inflate(R.layout.overlay_pip, null)
+        pipView = view
+
+        // Setup PIP layout params - small circular icon (slightly larger than app icons)
+        val pipSize = (64 * resources.displayMetrics.density).toInt()
+        val pipParams = WindowManager.LayoutParams(
+            pipSize,
+            pipSize,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.END
+            x = 20 // Margin from right
+            y = 100 // Margin from top
+        }
+
+        // Add PIP view
+        windowManager.addView(pipView, pipParams)
+
+        // Setup PIP interactions
+        setupPipInteractions(pipParams)
+
+        Log.d("TeleprompterService", "Entered PIP mode")
+    }
+
+    /**
+     * Setup interactions for PIP mode
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupPipInteractions(params: WindowManager.LayoutParams) {
+        val pipContainer = pipView?.findViewById<View>(R.id.pipContainer) ?: return
+        val pipPlayPauseIndicator = pipView?.findViewById<ImageView>(R.id.pipPlayPauseIndicator)
+
+        // Update play/pause indicator
+        val iconRes = if (isScrolling) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+        pipPlayPauseIndicator?.setImageResource(iconRes)
+
+        var initialX = 0
+        var initialY = 0
+        var initialTouchX = 0f
+        var initialTouchY = 0f
+        var isDragging = false
+        var hasMoved = false
+
+        pipContainer.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    isDragging = true
+                    hasMoved = false
+                    initialX = params.x
+                    initialY = params.y
+                    initialTouchX = event.rawX
+                    initialTouchY = event.rawY
+                    true
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    if (isDragging) {
+                        val deltaX = (initialTouchX - event.rawX).toInt()
+                        val deltaY = (event.rawY - initialTouchY).toInt()
+
+                        // Check if actually moved (more than 10px)
+                        if (kotlin.math.abs(deltaX) > 10 || kotlin.math.abs(deltaY) > 10) {
+                            hasMoved = true
+                        }
+
+                        params.x = initialX + deltaX
+                        params.y = initialY + deltaY
+
+                        // Update view layout
+                        pipView?.let { windowManager.updateViewLayout(it, params) }
+                    }
+                    true
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isDragging && !hasMoved) {
+                        // Tap detected - exit PIP mode
+                        exitPipMode()
+                    }
+                    isDragging = false
+                    true
+                }
+
+                else -> false
+            }
+        }
+    }
+
+    /**
+     * Exit Picture-in-Picture mode - restore full overlay
+     */
+    private fun exitPipMode() {
+        if (!isPipMode) return
+
+        isPipMode = false
+
+        // Remove PIP view
+        pipView?.let { view ->
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {
+                // View already removed, ignore
+            }
+        }
+        pipView = null
+
+        // Recreate full overlay
+        createOverlay()
+
+        // Restore script content
+        scriptTextView?.text = currentScriptContent
+
+        Log.d("TeleprompterService", "Exited PIP mode")
     }
 
     override fun onDestroy() {
@@ -937,6 +1085,16 @@ class TeleprompterOverlayService : LifecycleService() {
             }
         }
         overlayView = null
+
+        // Remove PIP view if present
+        pipView?.let { view ->
+            try {
+                windowManager.removeView(view)
+            } catch (_: Exception) {
+                // View already removed, ignore
+            }
+        }
+        pipView = null
 
         // Stop foreground
         stopForeground(STOP_FOREGROUND_REMOVE)
