@@ -292,7 +292,7 @@ class TeleprompterOverlayService : LifecycleService() {
             if (wasScrolling) {
                 startScrolling()
                 overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
-                    ?.setImageResource(android.R.drawable.ic_media_pause)
+                    ?.setImageResource(R.drawable.ic_pause)
             }
         }
     }
@@ -398,12 +398,12 @@ class TeleprompterOverlayService : LifecycleService() {
         val playPauseClickListener = View.OnClickListener {
             if (isScrolling) {
                 stopScrolling()
-                btnPlayPause?.setImageResource(android.R.drawable.ic_media_play)
-                btnPlayPauseTop?.setImageResource(android.R.drawable.ic_media_play)
+                btnPlayPause?.setImageResource(R.drawable.ic_play)
+                btnPlayPauseTop?.setImageResource(R.drawable.ic_play)
             } else {
                 startScrolling()
                 btnPlayPause?.setImageResource(android.R.drawable.ic_media_pause)
-                btnPlayPauseTop?.setImageResource(android.R.drawable.ic_media_pause)
+                btnPlayPauseTop?.setImageResource(R.drawable.ic_pause)
             }
         }
 
@@ -1016,7 +1016,7 @@ class TeleprompterOverlayService : LifecycleService() {
         val pipPlayPauseIndicator = pipView?.findViewById<ImageView>(R.id.pipPlayPauseIndicator)
 
         // Update play/pause indicator
-        val iconRes = if (isScrolling) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
+        val iconRes = if (isScrolling) R.drawable.ic_pause else R.drawable.ic_play
         pipPlayPauseIndicator?.setImageResource(iconRes)
 
         var initialX = 0

@@ -77,7 +77,7 @@
                 android:layout_width="56dp"
                 android:layout_height="56dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_media_play"
+                android:src="@drawable/ic_play"
                 android:tint="#28A745"
                 android:contentDescription="Play/Pause"
                 android:layout_marginStart="8dp"
