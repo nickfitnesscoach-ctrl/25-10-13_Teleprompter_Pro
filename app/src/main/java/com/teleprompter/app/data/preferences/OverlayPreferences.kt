@@ -10,12 +10,13 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+// Top-level extension property for singleton DataStore
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "overlay_preferences")
+
 /**
  * Manages overlay position preferences using DataStore
  */
 class OverlayPreferences(private val context: Context) {
-
-    private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "overlay_preferences")
 
     companion object {
         private val OVERLAY_X = intPreferencesKey("overlay_x")
