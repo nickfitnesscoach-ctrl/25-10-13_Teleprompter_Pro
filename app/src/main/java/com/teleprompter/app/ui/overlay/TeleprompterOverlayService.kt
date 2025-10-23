@@ -72,11 +72,12 @@ class TeleprompterOverlayService : LifecycleService() {
     // Text size pinch-to-zoom
     private lateinit var scaleGestureDetector: ScaleGestureDetector
     private var currentTextSize = 28f // Base text size in sp
-    private val minTextSize = 16f
+    private val minTextSize = 12f // Lower minimum for more range
     private val maxTextSize = 72f
     private var lastSavedTextSize = 28f // For throttling saves
-    private var initialSpan = 0f // Initial distance between fingers
     private var baseTextSize = 28f // Text size at start of gesture
+    private var isScaling = false // Track if currently scaling
+    private var accumulatedScale = 1.0f // Accumulated scale for smoothing
 
     // Text alignment
     private var currentAlignment = 0 // 0 = start, 1 = center, 2 = end
@@ -520,7 +521,7 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
-     * Setup pinch-to-zoom gesture for text size
+     * Setup pinch-to-zoom gesture for text size with smooth scaling
      */
     @SuppressLint("ClickableViewAccessibility")
     private fun setupTextSizeGesture() {
@@ -532,32 +533,56 @@ class TeleprompterOverlayService : LifecycleService() {
             textView.textSize = currentTextSize
         }
 
-        // Initialize ScaleGestureDetector with smooth scaling using span (distance between fingers)
+        // Initialize ScaleGestureDetector with improved smoothness
         scaleGestureDetector = ScaleGestureDetector(this,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+
                 override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                    // Store initial distance between fingers and current text size
-                    initialSpan = detector.currentSpan
+                    // Mark that scaling has started
+                    isScaling = true
                     baseTextSize = currentTextSize
-                    Log.d("TeleprompterService", "Scale begin - span: $initialSpan, baseSize: $baseTextSize")
+                    accumulatedScale = 1.0f
+                    Log.d("TeleprompterService", "Scale begin - baseSize: $baseTextSize")
                     return true
                 }
 
                 override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    if (initialSpan == 0f) return false
+                    // Get scale factor from detector
+                    val scaleFactor = detector.scaleFactor
 
-                    // Calculate scale based on change in distance between fingers
-                    val currentSpan = detector.currentSpan
-                    val scaleFactor = currentSpan / initialSpan
+                    // Filter out invalid scale factors
+                    if (scaleFactor <= 0f || scaleFactor.isNaN() || scaleFactor.isInfinite()) {
+                        return false
+                    }
 
-                    // Apply scale to base text size (size at start of gesture)
-                    val newTextSize = baseTextSize * scaleFactor
-                    currentTextSize = newTextSize.coerceIn(minTextSize, maxTextSize)
+                    // Amplify the scale factor for faster response
+                    // Different amplification for zoom in vs zoom out for better control
+                    val amplifiedScale = if (scaleFactor > 1.0f) {
+                        // Zooming in: 3.5x amplification
+                        1.0f + (scaleFactor - 1.0f) * 3.5f
+                    } else {
+                        // Zooming out: 2.5x amplification (slower for better control)
+                        1.0f - (1.0f - scaleFactor) * 2.5f
+                    }
 
+                    // Calculate new text size based on current size with amplification
+                    val newTextSize = currentTextSize * amplifiedScale
+
+                    // Apply min/max constraints to text size
+                    val constrainedSize = newTextSize.coerceIn(minTextSize, maxTextSize)
+
+                    // Check if size actually changed to avoid unnecessary updates
+                    if (kotlin.math.abs(constrainedSize - currentTextSize) < 0.01f) {
+                        // Size didn't change (hit boundary), but keep gesture alive
+                        return true
+                    }
+
+                    // Update text size immediately for smooth response
+                    currentTextSize = constrainedSize
                     textView.textSize = currentTextSize
 
-                    // Save only if changed significantly (throttle saves)
-                    if (kotlin.math.abs(currentTextSize - lastSavedTextSize) > 0.5f) {
+                    // Throttled save - only if changed by at least 1sp
+                    if (kotlin.math.abs(currentTextSize - lastSavedTextSize) > 1.0f) {
                         lastSavedTextSize = currentTextSize
                         lifecycleScope.launch {
                             overlayPreferences.saveTextSize(currentTextSize)
@@ -568,7 +593,10 @@ class TeleprompterOverlayService : LifecycleService() {
                 }
 
                 override fun onScaleEnd(detector: ScaleGestureDetector) {
-                    // Final save when gesture ends
+                    isScaling = false
+                    accumulatedScale = 1.0f
+
+                    // Final save with exact value
                     lifecycleScope.launch {
                         overlayPreferences.saveTextSize(currentTextSize)
                     }
@@ -576,9 +604,27 @@ class TeleprompterOverlayService : LifecycleService() {
                 }
             })
 
-        // Set touch listener on TextView
-        textView.setOnTouchListener { _, event ->
+        // Set touch listener on TextView with multi-touch support
+        textView.setOnTouchListener { view, event ->
+            // Always let ScaleGestureDetector process the event
             scaleGestureDetector.onTouchEvent(event)
+
+            // Also handle the event on parent to ensure it's captured
+            when (event.action and MotionEvent.ACTION_MASK) {
+                MotionEvent.ACTION_POINTER_DOWN,
+                MotionEvent.ACTION_POINTER_UP,
+                MotionEvent.ACTION_MOVE -> {
+                    // Force processing for multi-touch events
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> {
+                    // Release on gesture end
+                    view.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+
+            // Always consume the event to prevent interference
             true
         }
 
