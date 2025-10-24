@@ -4,20 +4,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.teleprompter.app.data.db.AppDatabase
 import com.teleprompter.app.data.models.Script
+import com.teleprompter.app.ui.theme.TelePrompterTheme
 import com.teleprompter.app.utils.Constants
 import kotlinx.coroutines.launch
 
 /**
- * Activity for creating and editing scripts
+ * Activity for creating and editing scripts - redesigned UI
  */
 @OptIn(ExperimentalMaterial3Api::class)
 class ScriptEditorActivity : ComponentActivity() {
@@ -32,7 +37,7 @@ class ScriptEditorActivity : ComponentActivity() {
         scriptId = intent.getLongExtra(Constants.EXTRA_SCRIPT_ID, -1L).takeIf { it != -1L }
 
         setContent {
-            MaterialTheme {
+            TelePrompterTheme {
                 ScriptEditorScreen()
             }
         }
@@ -61,11 +66,20 @@ class ScriptEditorActivity : ComponentActivity() {
             topBar = {
                 TopAppBar(
                     title = { Text(if (scriptId == null) "New Script" else "Edit Script") },
+                    navigationIcon = {
+                        IconButton(onClick = { finish() }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 )
-            }
+            },
+            containerColor = MaterialTheme.colorScheme.background
         ) { padding ->
             if (isLoading) {
                 Box(
@@ -74,7 +88,9 @@ class ScriptEditorActivity : ComponentActivity() {
                         .padding(padding),
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             } else {
                 Column(
@@ -84,43 +100,82 @@ class ScriptEditorActivity : ComponentActivity() {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Title input
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Script Title") },
+                    // Title input card
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Script Title") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                    }
 
-                    // Content input
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("Script Content") },
+                    // Content input card
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        minLines = 10
-                    )
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = content,
+                            onValueChange = { content = it },
+                            label = { Text("Script Content") },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            minLines = 10,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                    }
 
                     // Action buttons
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        OutlinedButton(
+                            onClick = { finish() },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text("Cancel")
+                        }
                         Button(
                             onClick = { saveScript(title, content) },
                             modifier = Modifier.weight(1f),
-                            enabled = title.isNotBlank() && content.isNotBlank()
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = title.isNotBlank() && content.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
                         ) {
                             Text("Save")
-                        }
-                        OutlinedButton(
-                            onClick = { finish() },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Cancel")
                         }
                     }
                 }
