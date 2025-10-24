@@ -176,7 +176,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                 // Italic button
                                 TextButton(
                                     onClick = {
-                                        content = applyFormatting(content, "*")
+                                        content = applyFormatting(content, "_")
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
@@ -188,7 +188,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                 // Underline button
                                 TextButton(
                                     onClick = {
-                                        content = applyFormatting(content, "_")
+                                        content = applyFormatting(content, "__")
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
@@ -252,22 +252,98 @@ class ScriptEditorActivity : ComponentActivity() {
 
     /**
      * Apply markdown-style formatting to selected text or insert formatting markers at cursor
+     * Toggle functionality: adds or removes specific marker, preserving other formatting
      */
     private fun applyFormatting(textFieldValue: TextFieldValue, marker: String): TextFieldValue {
         val text = textFieldValue.text
         val selection = textFieldValue.selection
 
         return if (selection.start != selection.end) {
-            // Text is selected - wrap it with markers
+            // Text is selected
             val selectedText = text.substring(selection.start, selection.end)
-            val newText = text.substring(0, selection.start) +
-                    marker + selectedText + marker +
-                    text.substring(selection.end)
+            val beforeText = text.substring(0, selection.start)
+            val afterText = text.substring(selection.end)
 
-            TextFieldValue(
-                text = newText,
-                selection = TextRange(selection.start + marker.length, selection.end + marker.length)
-            )
+            // Strategy 1: Check if marker exists just outside selection
+            val hasMarkerBefore = beforeText.endsWith(marker)
+            val hasMarkerAfter = afterText.startsWith(marker)
+
+            if (hasMarkerBefore && hasMarkerAfter) {
+                // Remove markers from outside
+                val newBeforeText = beforeText.substring(0, beforeText.length - marker.length)
+                val newAfterText = afterText.substring(marker.length)
+
+                val newText = newBeforeText + selectedText + newAfterText
+                TextFieldValue(
+                    text = newText,
+                    selection = TextRange(
+                        selection.start - marker.length,
+                        selection.end - marker.length
+                    )
+                )
+            } else {
+                // Strategy 2: Check if marker exists inside the selection (at edges)
+                val markerInsideStart = selectedText.startsWith(marker)
+                val markerInsideEnd = selectedText.endsWith(marker)
+
+                if (markerInsideStart && markerInsideEnd && selectedText.length > marker.length * 2) {
+                    // Remove markers from inside selection
+                    val newSelectedText = selectedText.substring(marker.length, selectedText.length - marker.length)
+
+                    val newText = beforeText + newSelectedText + afterText
+                    TextFieldValue(
+                        text = newText,
+                        selection = TextRange(
+                            selection.start,
+                            selection.start + newSelectedText.length
+                        )
+                    )
+                } else {
+                    // Strategy 3: Search for markers around current position with some tolerance
+                    val searchBefore = if (selection.start >= marker.length * 3) {
+                        text.substring(selection.start - marker.length * 3, selection.start)
+                    } else {
+                        text.substring(0, selection.start)
+                    }
+
+                    val searchAfter = if (selection.end + marker.length * 3 <= text.length) {
+                        text.substring(selection.end, selection.end + marker.length * 3)
+                    } else {
+                        text.substring(selection.end)
+                    }
+
+                    val foundBefore = searchBefore.lastIndexOf(marker)
+                    val foundAfter = searchAfter.indexOf(marker)
+
+                    if (foundBefore != -1 && foundAfter != -1) {
+                        // Found markers around selection - remove them
+                        val actualBeforeIndex = selection.start - searchBefore.length + foundBefore
+                        val actualAfterIndex = selection.end + foundAfter
+
+                        val newText = text.substring(0, actualBeforeIndex) +
+                                text.substring(actualBeforeIndex + marker.length, actualAfterIndex) +
+                                text.substring(actualAfterIndex + marker.length)
+
+                        TextFieldValue(
+                            text = newText,
+                            selection = TextRange(
+                                actualBeforeIndex,
+                                actualAfterIndex - marker.length
+                            )
+                        )
+                    } else {
+                        // No markers found - add them
+                        val newText = beforeText + marker + selectedText + marker + afterText
+                        TextFieldValue(
+                            text = newText,
+                            selection = TextRange(
+                                selection.start + marker.length,
+                                selection.end + marker.length
+                            )
+                        )
+                    }
+                }
+            }
         } else {
             // No selection - insert markers at cursor position
             val newText = text.substring(0, selection.start) +
@@ -287,14 +363,14 @@ class ScriptEditorActivity : ComponentActivity() {
     private fun convertMarkdownToHtml(text: String): String {
         var html = text
 
-        // Bold: **text** -> <b>text</b> (process first, before single *)
+        // Bold: **text** -> <b>text</b>
         html = html.replace(Regex("""\*\*([^*]+?)\*\*"""), "<b>$1</b>")
 
-        // Italic: *text* -> <i>text</i> (single * only, not part of **)
-        html = html.replace(Regex("""\*([^*]+?)\*"""), "<i>$1</i>")
+        // Underline: __text__ -> <u>text</u> (process before single _)
+        html = html.replace(Regex("""__([^_]+?)__"""), "<u>$1</u>")
 
-        // Underline: _text_ -> <u>text</u>
-        html = html.replace(Regex("""_([^_]+?)_"""), "<u>$1</u>")
+        // Italic: _text_ -> <i>text</i> (single _ only)
+        html = html.replace(Regex("""_([^_]+?)_"""), "<i>$1</i>")
 
         return html
     }
