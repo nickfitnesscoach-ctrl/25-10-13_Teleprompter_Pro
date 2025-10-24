@@ -1223,14 +1223,14 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun convertMarkdownToHtml(text: String): String {
         var html = text
 
-        // Bold: **text** -> <b>text</b>
-        html = html.replace(Regex("""\*\*(.+?)\*\*"""), "<b>$1</b>")
+        // Bold: **text** -> <b>text</b> (process first, before single *)
+        html = html.replace(Regex("""\*\*([^*]+?)\*\*"""), "<b>$1</b>")
 
-        // Italic: *text* -> <i>text</i> (but not ** which is bold)
-        html = html.replace(Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)"""), "<i>$1</i>")
+        // Italic: *text* -> <i>text</i> (single * only, not part of **)
+        html = html.replace(Regex("""\*([^*]+?)\*"""), "<i>$1</i>")
 
         // Underline: _text_ -> <u>text</u>
-        html = html.replace(Regex("""_(.+?)_"""), "<u>$1</u>")
+        html = html.replace(Regex("""_([^_]+?)_"""), "<u>$1</u>")
 
         return html
     }

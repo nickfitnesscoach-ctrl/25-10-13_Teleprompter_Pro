@@ -3,27 +3,19 @@ package com.teleprompter.app.ui.editor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -62,9 +54,6 @@ class ScriptEditorActivity : ComponentActivity() {
         var title by remember { mutableStateOf("") }
         var content by remember { mutableStateOf(TextFieldValue("")) }
         var isLoading by remember { mutableStateOf(true) }
-
-        // Track formatting spans
-        val formattingRanges = remember { mutableStateListOf<FormattingSpan>() }
 
         // Load existing script if editing
         LaunchedEffect(scriptId) {
@@ -298,14 +287,14 @@ class ScriptEditorActivity : ComponentActivity() {
     private fun convertMarkdownToHtml(text: String): String {
         var html = text
 
-        // Bold: **text** -> <b>text</b>
-        html = html.replace(Regex("""\*\*(.+?)\*\*"""), "<b>$1</b>")
+        // Bold: **text** -> <b>text</b> (process first, before single *)
+        html = html.replace(Regex("""\*\*([^*]+?)\*\*"""), "<b>$1</b>")
 
-        // Italic: *text* -> <i>text</i> (but not ** which is bold)
-        html = html.replace(Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)"""), "<i>$1</i>")
+        // Italic: *text* -> <i>text</i> (single * only, not part of **)
+        html = html.replace(Regex("""\*([^*]+?)\*"""), "<i>$1</i>")
 
         // Underline: _text_ -> <u>text</u>
-        html = html.replace(Regex("""_(.+?)_"""), "<u>$1</u>")
+        html = html.replace(Regex("""_([^_]+?)_"""), "<u>$1</u>")
 
         return html
     }
