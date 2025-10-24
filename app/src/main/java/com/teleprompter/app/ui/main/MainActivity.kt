@@ -436,10 +436,10 @@ class MainActivity : ComponentActivity() {
             putExtra(Constants.EXTRA_SCRIPT_ID, script.id)
         }
 
-        @Suppress("DEPRECATION")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
+            @Suppress("DEPRECATION")
             startService(intent)
         }
 

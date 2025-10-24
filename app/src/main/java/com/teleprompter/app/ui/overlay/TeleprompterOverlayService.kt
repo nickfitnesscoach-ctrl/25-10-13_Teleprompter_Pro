@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.text.Html
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -240,8 +241,14 @@ class TeleprompterOverlayService : LifecycleService() {
             // Create and show overlay
             createOverlay()
 
-            // Set script text after overlay is created
-            scriptTextView?.text = scriptContent
+            // Set script text after overlay is created (convert markdown to HTML)
+            val htmlContent = convertMarkdownToHtml(scriptContent)
+            scriptTextView?.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_COMPACT)
+            } else {
+                @Suppress("DEPRECATION")
+                Html.fromHtml(htmlContent)
+            }
 
         } catch (e: Exception) {
             Toast.makeText(this, "Error showing overlay: ${e.message}", Toast.LENGTH_LONG).show()
@@ -282,7 +289,13 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Restore state
         scrollSpeed = currentSpeed
-        scriptTextView?.text = currentScriptContent
+        val htmlContent = convertMarkdownToHtml(currentScriptContent ?: "")
+        scriptTextView?.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_COMPACT)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(htmlContent)
+        }
 
         // Restore scroll position after layout
         scrollView?.post {
@@ -1192,10 +1205,34 @@ class TeleprompterOverlayService : LifecycleService() {
         // Recreate full overlay
         createOverlay()
 
-        // Restore script content
-        scriptTextView?.text = currentScriptContent
+        // Restore script content (convert markdown to HTML)
+        val htmlContent = convertMarkdownToHtml(currentScriptContent ?: "")
+        scriptTextView?.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_COMPACT)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(htmlContent)
+        }
 
         Log.d("TeleprompterService", "Exited PIP mode")
+    }
+
+    /**
+     * Convert markdown-style formatting to HTML for display
+     */
+    private fun convertMarkdownToHtml(text: String): String {
+        var html = text
+
+        // Bold: **text** -> <b>text</b>
+        html = html.replace(Regex("""\*\*(.+?)\*\*"""), "<b>$1</b>")
+
+        // Italic: *text* -> <i>text</i> (but not ** which is bold)
+        html = html.replace(Regex("""(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)"""), "<i>$1</i>")
+
+        // Underline: _text_ -> <u>text</u>
+        html = html.replace(Regex("""_(.+?)_"""), "<u>$1</u>")
+
+        return html
     }
 
     override fun onDestroy() {

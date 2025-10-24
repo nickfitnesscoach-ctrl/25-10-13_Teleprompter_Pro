@@ -8,7 +8,10 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd Figma design resources and assets\n\nDesign Assets from Figma:\n- Converted 6 SVG icons to Android Vector Drawables\n- Created background drawables for text panel and control panel\n- Added comprehensive color and dimension resources\n\nIcons Added (res/drawable/):\n- ic_minus.xml: Slower button (horizontal line)\n- ic_play.xml: Play/Pause button (triangle)\n- ic_plus.xml: Faster button (plus sign)\n- ic_move.xml: Drag/move button (4-direction arrows)\n- ic_pip.xml: Picture-in-Picture button\n- ic_close.xml: Close button (X in circle)\n\nBackground Drawables:\n- text_panel_background.xml: Black 45% opacity, 16dp corner radius\n- control_panel_background.xml: Black 45% opacity, 20dp corner radius\n\nColor Resources (colors.xml):\n- overlay_background: #FFFFFF (white)\n- text_area_background: #73000000 (black 45% opacity)\n- control_panel_background: #FFFFFF\n- button_background: #E6FFFFFF (white 90% opacity)\n- button_background_full: #FFFFFF\n\nDimension Resources (dimens.xml):\n- overlay_padding: 16dp\n- overlay_gap: 12dp\n- control_panel_padding: 12dp\n- control_panel_gap: 12dp\n- control_panel_corner_radius: 20dp\n- control_panel_height: 101dp\n- button_size: 85dp\n- button_spacing: 5dp\n- text_area_corner_radius: 16dp\n- text_area_min_height: 200dp\n\nAll resources extracted from Figma design specifications:\n- Frame: 1063×552px\n- Text area: 1031×520px with 16dp radius\n- Control panel: 1051×101px with 20dp radius\n- Buttons: 85×85px each\n\nReady for layout implementation.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
       "Bash(./gradlew:*)",
-      "Bash(dir)"
+      "Bash(dir)",
+      "Bash(dir:*)",
+      "Bash(rm:*)",
+      "Bash(rmdir:*)"
     ],
     "deny": [],
     "ask": []

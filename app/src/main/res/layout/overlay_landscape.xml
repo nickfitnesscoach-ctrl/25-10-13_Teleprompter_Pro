@@ -37,7 +37,7 @@
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 android:fontFamily="sans-serif"
-                android:textStyle="bold"
+                android:textStyle="normal"
                 android:maxLines="999999"
                 android:ellipsize="none" />
         </ScrollView>
