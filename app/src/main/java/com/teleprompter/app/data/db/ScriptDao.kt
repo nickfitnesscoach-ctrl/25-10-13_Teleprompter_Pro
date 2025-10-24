@@ -57,4 +57,10 @@ interface ScriptDao {
      */
     @Query("SELECT COUNT(*) FROM scripts")
     suspend fun getScriptsCount(): Int
+
+    /**
+     * Delete all scripts
+     */
+    @Query("DELETE FROM scripts")
+    suspend fun deleteAllScripts()
 }

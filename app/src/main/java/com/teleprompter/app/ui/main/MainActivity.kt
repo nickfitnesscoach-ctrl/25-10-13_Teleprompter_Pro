@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
@@ -107,7 +106,7 @@ class MainActivity : ComponentActivity() {
     fun MainScreen() {
         val allScripts = remember { mutableStateOf<List<Script>>(emptyList()) }
         val searchQuery = remember { mutableStateOf("") }
-        val isSearchActive = remember { mutableStateOf(false) }
+        val showMenu = remember { mutableStateOf(false) }
 
         // Collect scripts from database
         LaunchedEffect(Unit) {
@@ -132,55 +131,76 @@ class MainActivity : ComponentActivity() {
 
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        if (isSearchActive.value) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    // Top bar with search field and menu
+                    TopAppBar(
+                        title = {
                             TextField(
                                 value = searchQuery.value,
                                 onValueChange = { searchQuery.value = it },
-                                placeholder = { Text("Search") },
+                                placeholder = {
+                                    Text(
+                                        "Search",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent,
-                                    focusedIndicatorColor = Color.Transparent,
-                                    unfocusedIndicatorColor = Color.Transparent
+                                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    cursorColor = MaterialTheme.colorScheme.primary,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                singleLine = true
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = "Search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             )
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("Scripts")
+                        },
+                        actions = {
+                            Box {
+                                IconButton(onClick = { showMenu.value = true }) {
+                                    Icon(Icons.Default.MoreVert, "Menu")
+                                }
+                                DropdownMenu(
+                                    expanded = showMenu.value,
+                                    onDismissRequest = { showMenu.value = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Delete all scripts") },
+                                        onClick = {
+                                            showMenu.value = false
+                                            deleteAllScripts()
+                                        }
+                                    )
+                                }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        if (isSearchActive.value) {
-                            IconButton(onClick = {
-                                isSearchActive.value = false
-                                searchQuery.value = ""
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close search")
-                            }
-                        }
-                    },
-                    actions = {
-                        if (!isSearchActive.value) {
-                            IconButton(onClick = { isSearchActive.value = true }) {
-                                Icon(Icons.Default.Search, "Search")
-                            }
-                        }
-                        IconButton(onClick = { /* TODO: Menu */ }) {
-                            Icon(Icons.Default.MoreVert, "Menu")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
-                )
+
+                    // Scripts title
+                    Text(
+                        text = "Scripts",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
             },
             floatingActionButton = {
                 FloatingActionButton(
@@ -402,6 +422,7 @@ class MainActivity : ComponentActivity() {
             putExtra(Constants.EXTRA_SCRIPT_ID, script.id)
         }
 
+        @Suppress("DEPRECATION")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
         } else {
@@ -422,6 +443,14 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 database.scriptDao().deleteScript(script)
+            }
+        }
+    }
+
+    private fun deleteAllScripts() {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                database.scriptDao().deleteAllScripts()
             }
         }
     }

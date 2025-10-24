@@ -3,6 +3,7 @@ package com.teleprompter.app.ui.editor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -65,12 +66,20 @@ class ScriptEditorActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(if (scriptId == null) "New Script" else "Edit Script") },
+                    title = {
+                        Text(
+                            text = if (scriptId == null) "New Script" else "Edit Script",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = { finish() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
