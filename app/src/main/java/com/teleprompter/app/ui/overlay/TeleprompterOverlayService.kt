@@ -607,15 +607,35 @@ class TeleprompterOverlayService : LifecycleService() {
         // Set touch listener on TextView with multi-touch support
         textView.setOnTouchListener { view, event ->
             // Always let ScaleGestureDetector process the event
-            scaleGestureDetector.onTouchEvent(event)
+            val isScaleGesture = scaleGestureDetector.onTouchEvent(event)
 
-            // Also handle the event on parent to ensure it's captured
+            val pointerCount = event.pointerCount
+
+            // Handle multi-touch (pinch-to-zoom) vs single touch (scroll)
             when (event.action and MotionEvent.ACTION_MASK) {
                 MotionEvent.ACTION_POINTER_DOWN,
-                MotionEvent.ACTION_POINTER_UP,
-                MotionEvent.ACTION_MOVE -> {
-                    // Force processing for multi-touch events
+                MotionEvent.ACTION_POINTER_UP -> {
+                    // Multi-touch gesture - disable parent scrolling for pinch-to-zoom
                     view.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_DOWN -> {
+                    // Single touch down
+                    if (!isScrolling) {
+                        // Not scrolling - allow parent ScrollView to handle this
+                        view.parent?.requestDisallowInterceptTouchEvent(false)
+                    } else {
+                        // Currently auto-scrolling - block manual scroll
+                        view.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (pointerCount >= 2) {
+                        // Multi-touch move - pinch gesture
+                        view.parent?.requestDisallowInterceptTouchEvent(true)
+                    } else if (!isScrolling) {
+                        // Single finger move while paused - allow scroll
+                        view.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
                 }
                 MotionEvent.ACTION_UP,
                 MotionEvent.ACTION_CANCEL -> {
@@ -624,8 +644,13 @@ class TeleprompterOverlayService : LifecycleService() {
                 }
             }
 
-            // Always consume the event to prevent interference
-            true
+            // Only consume event if it's a multi-touch gesture (pinch-to-zoom)
+            // Let ScrollView handle single touch when paused
+            if (pointerCount >= 2 || isScrolling) {
+                true // Consume the event
+            } else {
+                false // Let parent ScrollView handle single-finger scroll
+            }
         }
 
         // Load saved alignment
@@ -673,6 +698,17 @@ class TeleprompterOverlayService : LifecycleService() {
         textView.maxLines = Int.MAX_VALUE
         textView.ellipsize = null
 
+        val scrollViewHeight = scroll.height
+
+        // Add TOP padding so text starts at bottom of screen
+        val currentPaddingBottom = textView.paddingBottom
+        textView.setPadding(
+            textView.paddingLeft,
+            scrollViewHeight, // Add top padding equal to scroll view height
+            textView.paddingRight,
+            currentPaddingBottom
+        )
+
         // Wait for layout to be measured
         textView.post {
             // Force measure
@@ -683,33 +719,35 @@ class TeleprompterOverlayService : LifecycleService() {
 
             // Get the content height (child of ScrollView)
             val contentHeight = textView.measuredHeight
-            val scrollViewHeight = scroll.height
-            val fullHeight = contentHeight - scrollViewHeight
+            val maxScroll = contentHeight - scrollViewHeight
 
-            Log.d("TeleprompterService", "contentHeight=$contentHeight, scrollViewHeight=$scrollViewHeight, fullHeight=$fullHeight")
+            Log.d("TeleprompterService", "contentHeight=$contentHeight, scrollViewHeight=$scrollViewHeight, maxScroll=$maxScroll")
 
-            if (fullHeight <= 0) {
+            if (maxScroll <= 0) {
                 Toast.makeText(this, "Text is too short to scroll", Toast.LENGTH_SHORT).show()
                 return@post
             }
 
             val currentY = scroll.scrollY
-            val remainingDistance = fullHeight - currentY
+
+            // Always start from position 0 (text at bottom of screen) and scroll to maxScroll (text moves up)
+            if (currentY == 0) {
+                Log.d("TeleprompterService", "Starting teleprompter - text will scroll from bottom to top")
+            }
+
+            // Scroll from current position to maxScroll (text moves upward)
+            val remainingDistance = maxScroll - currentY
 
             if (remainingDistance <= 0) {
                 Toast.makeText(this, "Already at the end", Toast.LENGTH_SHORT).show()
                 return@post
             }
 
-            // Calculate duration based on speed (higher speed = faster = less duration)
-            // Formula: duration = distance * (1000 / speed)
-            // Speed 1: very slow (1000ms per pixel)
-            // Speed 500: very fast (2ms per pixel)
             val duration = (remainingDistance * 1000 / scrollSpeed).toLong()
 
-            Log.d("TeleprompterService", "Starting scroll from $currentY to $fullHeight, duration=$duration ms")
+            Log.d("TeleprompterService", "Scrolling from $currentY to $maxScroll, duration=$duration ms")
 
-            scrollAnimator = ValueAnimator.ofInt(currentY, fullHeight).apply {
+            scrollAnimator = ValueAnimator.ofInt(currentY, maxScroll).apply {
                 this.duration = duration
                 interpolator = LinearInterpolator()
 
