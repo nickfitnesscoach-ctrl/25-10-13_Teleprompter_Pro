@@ -461,6 +461,23 @@ class TeleprompterOverlayService : LifecycleService() {
         }
 
         btnMinimize?.setOnClickListener {
+            // Return to main activity (script list) - just bring it to front
+            val intent = Intent(this, com.teleprompter.app.ui.main.MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            }
+
+            startActivity(intent)
+
+            // Hide overlay and stop service
+            overlayView?.let { view ->
+                try {
+                    windowManager.removeView(view)
+                } catch (_: Exception) {
+                    // View already removed
+                }
+            }
+            overlayView = null
             stopSelf()
         }
 
