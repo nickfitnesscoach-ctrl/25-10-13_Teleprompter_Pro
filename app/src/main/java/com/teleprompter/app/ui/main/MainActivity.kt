@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -107,6 +108,7 @@ class MainActivity : ComponentActivity() {
         val allScripts = remember { mutableStateOf<List<Script>>(emptyList()) }
         val searchQuery = remember { mutableStateOf("") }
         val showMenu = remember { mutableStateOf(false) }
+        val focusManager = LocalFocusManager.current
 
         // Collect scripts from database
         LaunchedEffect(Unit) {
@@ -217,7 +219,13 @@ class MainActivity : ComponentActivity() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding),
+                        .padding(padding)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        ) {
+                            focusManager.clearFocus()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -234,7 +242,13 @@ class MainActivity : ComponentActivity() {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding),
+                        .padding(padding)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        ) {
+                            focusManager.clearFocus()
+                        },
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
