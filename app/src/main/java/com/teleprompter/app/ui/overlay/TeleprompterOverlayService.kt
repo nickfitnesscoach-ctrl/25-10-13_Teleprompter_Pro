@@ -607,7 +607,7 @@ class TeleprompterOverlayService : LifecycleService() {
         // Set touch listener on TextView with multi-touch support
         textView.setOnTouchListener { view, event ->
             // Always let ScaleGestureDetector process the event
-            val isScaleGesture = scaleGestureDetector.onTouchEvent(event)
+            scaleGestureDetector.onTouchEvent(event)
 
             val pointerCount = event.pointerCount
 
