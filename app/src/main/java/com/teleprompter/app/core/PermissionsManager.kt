@@ -5,8 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import androidx.activity.result.ActivityResultLauncher
-import com.teleprompter.app.utils.hasOverlayPermission
 
 /**
  * Manager for handling overlay and notification permissions
@@ -17,7 +15,7 @@ class PermissionsManager(private val context: Context) {
      * Check if app has overlay permission
      */
     fun hasOverlayPermission(): Boolean {
-        return context.hasOverlayPermission()
+        return Settings.canDrawOverlays(context)
     }
 
     /**
@@ -49,7 +47,7 @@ class PermissionsManager(private val context: Context) {
          * Check overlay permission from any context
          */
         fun checkOverlayPermission(context: Context): Boolean {
-            return context.hasOverlayPermission()
+            return Settings.canDrawOverlays(context)
         }
     }
 }
