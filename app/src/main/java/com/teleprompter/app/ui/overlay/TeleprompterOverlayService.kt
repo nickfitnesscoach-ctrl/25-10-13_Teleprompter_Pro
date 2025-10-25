@@ -740,6 +740,14 @@ class TeleprompterOverlayService : LifecycleService() {
             "sans-serif" -> Typeface.SANS_SERIF
             "monospace" -> Typeface.MONOSPACE
             "cursive" -> Typeface.create("cursive", Typeface.NORMAL)
+            "bebas_neue" -> {
+                try {
+                    resources.getFont(R.font.bebas_neue)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Bebas Neue font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
             else -> Typeface.DEFAULT
         }
         textView.typeface = typeface

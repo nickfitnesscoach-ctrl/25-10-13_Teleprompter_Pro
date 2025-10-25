@@ -22,6 +22,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -344,6 +345,7 @@ class ScriptEditorActivity : ComponentActivity() {
         val availableFonts = remember {
             listOf(
                 "Default" to FontFamily.Default,
+                "Bebas Neue" to FontFamily(Font(R.font.bebas_neue)),
                 "Serif" to FontFamily.Serif,
                 "Sans-Serif" to FontFamily.SansSerif,
                 "Monospace" to FontFamily.Monospace,
@@ -697,6 +699,7 @@ class ScriptEditorActivity : ComponentActivity() {
                 FontFamily.SansSerif -> "sans-serif"
                 FontFamily.Monospace -> "monospace"
                 FontFamily.Cursive -> "cursive"
+                FontFamily(Font(R.font.bebas_neue)) -> "bebas_neue"
                 else -> null
             }
 
@@ -773,6 +776,7 @@ class ScriptEditorActivity : ComponentActivity() {
                             "sans-serif" -> FontFamily.SansSerif
                             "monospace" -> FontFamily.Monospace
                             "cursive" -> FontFamily.Cursive
+                            "bebas_neue" -> FontFamily(Font(R.font.bebas_neue))
                             else -> FontFamily.Default
                         }
                         fontStartIndex = textIndex
@@ -818,11 +822,14 @@ class ScriptEditorActivity : ComponentActivity() {
      * Save font family to preferences for overlay
      */
     private fun saveFontFamilyToPreferences(fontFamily: FontFamily) {
-        val fontFamilyName = when (fontFamily) {
-            FontFamily.Serif -> "serif"
-            FontFamily.SansSerif -> "sans-serif"
-            FontFamily.Monospace -> "monospace"
-            FontFamily.Cursive -> "cursive"
+        val bebasNeueFamily = FontFamily(Font(R.font.bebas_neue))
+
+        val fontFamilyName = when {
+            fontFamily == FontFamily.Serif -> "serif"
+            fontFamily == FontFamily.SansSerif -> "sans-serif"
+            fontFamily == FontFamily.Monospace -> "monospace"
+            fontFamily == FontFamily.Cursive -> "cursive"
+            fontFamily == bebasNeueFamily -> "bebas_neue"
             else -> "default"
         }
 
