@@ -258,4 +258,11 @@ class OverlayPreferences(private val context: Context) {
 
         return fontFamily
     }
+
+    /**
+     * Get text font family as Flow (for observing changes)
+     */
+    val fontFamilyFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[TEXT_FONT_FAMILY] ?: DEFAULT_FONT_FAMILY
+    }
 }

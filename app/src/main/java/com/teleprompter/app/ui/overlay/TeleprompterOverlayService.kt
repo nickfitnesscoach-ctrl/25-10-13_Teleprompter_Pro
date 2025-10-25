@@ -607,6 +607,14 @@ class TeleprompterOverlayService : LifecycleService() {
             applyFontFamily(fontFamily)
         }
 
+        // Observe font family changes in real-time
+        lifecycleScope.launch {
+            overlayPreferences.fontFamilyFlow.collect { fontFamily ->
+                applyFontFamily(fontFamily)
+                Log.d("TeleprompterService", "Font family changed to: $fontFamily")
+            }
+        }
+
         // Initialize ScaleGestureDetector with improved smoothness
         scaleGestureDetector = ScaleGestureDetector(this,
             object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
