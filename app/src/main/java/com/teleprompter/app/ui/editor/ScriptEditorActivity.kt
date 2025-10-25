@@ -510,20 +510,35 @@ class ScriptEditorActivity : ComponentActivity() {
         val newAnnotatedString = buildAnnotatedString {
             append(originalAnnotated.text)
 
-            // Copy all existing styles (bold, italic, underline)
-            originalAnnotated.spanStyles.forEach { span ->
-                // Keep all styles except old fontFamily
-                val newStyle = span.item.copy(fontFamily = fontFamily)
-                addStyle(newStyle, span.start, span.end)
-            }
-
-            // Apply font family to entire text if no styles exist
-            if (originalAnnotated.spanStyles.isEmpty() && originalAnnotated.text.isNotEmpty()) {
+            // First, apply font family to entire text
+            if (originalAnnotated.text.isNotEmpty()) {
                 addStyle(
                     style = SpanStyle(fontFamily = fontFamily),
                     start = 0,
                     end = originalAnnotated.text.length
                 )
+            }
+
+            // Then copy all existing styles (bold, italic, underline) without fontFamily
+            // This ensures other styles are preserved but fontFamily doesn't duplicate
+            originalAnnotated.spanStyles.forEach { span ->
+                // Create style with only non-font properties
+                val styleWithoutFont = SpanStyle(
+                    color = span.item.color,
+                    fontSize = span.item.fontSize,
+                    fontWeight = span.item.fontWeight,
+                    fontStyle = span.item.fontStyle,
+                    fontSynthesis = span.item.fontSynthesis,
+                    fontFeatureSettings = span.item.fontFeatureSettings,
+                    letterSpacing = span.item.letterSpacing,
+                    baselineShift = span.item.baselineShift,
+                    textGeometricTransform = span.item.textGeometricTransform,
+                    localeList = span.item.localeList,
+                    background = span.item.background,
+                    textDecoration = span.item.textDecoration,
+                    shadow = span.item.shadow
+                )
+                addStyle(styleWithoutFont, span.start, span.end)
             }
         }
 
