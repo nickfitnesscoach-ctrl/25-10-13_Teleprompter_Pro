@@ -340,16 +340,20 @@ class ScriptEditorActivity : ComponentActivity() {
         var searchQuery by remember { mutableStateOf("") }
         var selectedFont by remember { mutableStateOf<Pair<String, FontFamily>?>(null) }
 
-        // Available fonts list
+        // Available fonts list (only fonts with Cyrillic support)
         val availableFonts = remember {
             listOf(
                 "Default" to FontFamily.Default,
                 "Bebas Neue" to FontFamily(Font(R.font.bebas_neue)),
+                "Comfortaa" to FontFamily(Font(R.font.comfortaa_regular)),
                 "Druk Cyr Bold" to FontFamily(Font(R.font.drukcyr_bold)),
-                "Serif" to FontFamily.Serif,
-                "Sans-Serif" to FontFamily.SansSerif,
-                "Monospace" to FontFamily.Monospace,
-                "Cursive" to FontFamily.Cursive
+                "Montserrat" to FontFamily(Font(R.font.montserrat_regular)),
+                "Open Sans" to FontFamily(Font(R.font.opensans_regular)),
+                "Oswald" to FontFamily(Font(R.font.oswald_regular)),
+                "PT Sans" to FontFamily(Font(R.font.ptsans_regular)),
+                "Raleway" to FontFamily(Font(R.font.raleway_regular)),
+                "Roboto" to FontFamily(Font(R.font.roboto_regular)),
+                "Ubuntu" to FontFamily(Font(R.font.ubuntu_regular))
             )
         }
 
@@ -772,11 +776,16 @@ class ScriptEditorActivity : ComponentActivity() {
                     val familyMatch = Pattern.compile("font-family: ([^;\"]+)").matcher(styleContent)
                     if (familyMatch.find()) {
                         currentFontFamily = when (familyMatch.group(1)?.trim()) {
-                            "serif" -> FontFamily.Serif
-                            "sans-serif" -> FontFamily.SansSerif
-                            "monospace" -> FontFamily.Monospace
-                            "cursive" -> FontFamily.Cursive
                             "bebas_neue" -> FontFamily(Font(R.font.bebas_neue))
+                            "comfortaa_regular" -> FontFamily(Font(R.font.comfortaa_regular))
+                            "drukcyr_bold" -> FontFamily(Font(R.font.drukcyr_bold))
+                            "montserrat_regular" -> FontFamily(Font(R.font.montserrat_regular))
+                            "opensans_regular" -> FontFamily(Font(R.font.opensans_regular))
+                            "oswald_regular" -> FontFamily(Font(R.font.oswald_regular))
+                            "ptsans_regular" -> FontFamily(Font(R.font.ptsans_regular))
+                            "raleway_regular" -> FontFamily(Font(R.font.raleway_regular))
+                            "roboto_regular" -> FontFamily(Font(R.font.roboto_regular))
+                            "ubuntu_regular" -> FontFamily(Font(R.font.ubuntu_regular))
                             else -> FontFamily.Default
                         }
                         fontStartIndex = textIndex
@@ -824,11 +833,15 @@ class ScriptEditorActivity : ComponentActivity() {
     private fun saveFontFamilyToPreferences(fontName: String) {
         val fontFamilyName = when (fontName) {
             "Bebas Neue" -> "bebas_neue"
+            "Comfortaa" -> "comfortaa_regular"
             "Druk Cyr Bold" -> "drukcyr_bold"
-            "Serif" -> "serif"
-            "Sans-Serif" -> "sans-serif"
-            "Monospace" -> "monospace"
-            "Cursive" -> "cursive"
+            "Montserrat" -> "montserrat_regular"
+            "Open Sans" -> "opensans_regular"
+            "Oswald" -> "oswald_regular"
+            "PT Sans" -> "ptsans_regular"
+            "Raleway" -> "raleway_regular"
+            "Roboto" -> "roboto_regular"
+            "Ubuntu" -> "ubuntu_regular"
             else -> "default"
         }
 

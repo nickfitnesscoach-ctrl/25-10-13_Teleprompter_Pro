@@ -736,10 +736,6 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun applyFontFamily(fontFamilyName: String) {
         val textView = scriptTextView ?: return
         val typeface = when (fontFamilyName.lowercase()) {
-            "serif" -> Typeface.SERIF
-            "sans-serif" -> Typeface.SANS_SERIF
-            "monospace" -> Typeface.MONOSPACE
-            "cursive" -> Typeface.create("cursive", Typeface.NORMAL)
             "bebas_neue" -> {
                 try {
                     resources.getFont(R.font.bebas_neue)
@@ -748,11 +744,75 @@ class TeleprompterOverlayService : LifecycleService() {
                     Typeface.DEFAULT
                 }
             }
+            "comfortaa_regular" -> {
+                try {
+                    resources.getFont(R.font.comfortaa_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Comfortaa font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
             "drukcyr_bold" -> {
                 try {
                     resources.getFont(R.font.drukcyr_bold)
                 } catch (e: Exception) {
                     Log.e("TeleprompterService", "Error loading Druk Cyr Bold font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "montserrat_regular" -> {
+                try {
+                    resources.getFont(R.font.montserrat_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Montserrat font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "opensans_regular" -> {
+                try {
+                    resources.getFont(R.font.opensans_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Open Sans font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "oswald_regular" -> {
+                try {
+                    resources.getFont(R.font.oswald_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Oswald font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "ptsans_regular" -> {
+                try {
+                    resources.getFont(R.font.ptsans_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading PT Sans font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "raleway_regular" -> {
+                try {
+                    resources.getFont(R.font.raleway_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Raleway font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "roboto_regular" -> {
+                try {
+                    resources.getFont(R.font.roboto_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Roboto font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
+            "ubuntu_regular" -> {
+                try {
+                    resources.getFont(R.font.ubuntu_regular)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Ubuntu font: ${e.message}")
                     Typeface.DEFAULT
                 }
             }
