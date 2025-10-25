@@ -335,8 +335,9 @@ class ScriptEditorActivity : ComponentActivity() {
     }
 
     /**
-     * Apply visual formatting (Bold/Italic/Underline) to selected text using AnnotatedString
-     * NO markdown markers - pure visual formatting like in professional teleprompters
+     * Apply/Remove visual formatting (Bold/Italic/Underline) to selected text using AnnotatedString
+     * Toggle logic: if format exists, remove it; if not, add it
+     * Supports combining multiple formats (bold + italic + underline)
      */
     private fun applyFormatting(textFieldValue: TextFieldValue, formatType: String): TextFieldValue {
         val selection = textFieldValue.selection
@@ -346,32 +347,89 @@ class ScriptEditorActivity : ComponentActivity() {
             return textFieldValue
         }
 
-        // Create new SpanStyle based on format type
-        val newStyle = when (formatType) {
-            "bold" -> SpanStyle(fontWeight = FontWeight.Bold)
-            "italic" -> SpanStyle(fontStyle = FontStyle.Italic)
-            "underline" -> SpanStyle(textDecoration = TextDecoration.Underline)
-            else -> return textFieldValue
-        }
-
-        // Build new AnnotatedString with the formatting applied
         val originalAnnotated = textFieldValue.annotatedString
-        val newAnnotatedString = buildAnnotatedString {
-            // Copy everything
-            append(originalAnnotated)
 
-            // Add new style span to selected range
-            addStyle(
-                style = newStyle,
-                start = selection.start,
-                end = selection.end
-            )
+        // Check if the selected text already has this specific format
+        val hasFormat = hasFormatInRange(originalAnnotated, selection.start, selection.end, formatType)
+
+        // Build new AnnotatedString with toggle logic
+        val newAnnotatedString = buildAnnotatedString {
+            append(originalAnnotated.text)
+
+            // Copy all existing styles, but filter out the toggled format in selected range
+            originalAnnotated.spanStyles.forEach { span ->
+                val isTargetFormat = when (formatType) {
+                    "bold" -> span.item.fontWeight == FontWeight.Bold
+                    "italic" -> span.item.fontStyle == FontStyle.Italic
+                    "underline" -> span.item.textDecoration == TextDecoration.Underline
+                    else -> false
+                }
+
+                // Check if this span overlaps with selection
+                val overlapsSelection = span.start < selection.end && span.end > selection.start
+
+                // If toggling OFF: skip this format in selection range
+                // If toggling ON: keep all existing formats
+                if (hasFormat && isTargetFormat && overlapsSelection) {
+                    // Split the span to exclude the selected range
+                    if (span.start < selection.start) {
+                        // Keep part before selection
+                        addStyle(span.item, span.start, minOf(selection.start, span.end))
+                    }
+                    if (span.end > selection.end) {
+                        // Keep part after selection
+                        addStyle(span.item, maxOf(selection.end, span.start), span.end)
+                    }
+                } else {
+                    // Keep all other styles as-is
+                    addStyle(span.item, span.start, span.end)
+                }
+            }
+
+            // If toggling ON, add the new format
+            if (!hasFormat) {
+                val newStyle = when (formatType) {
+                    "bold" -> SpanStyle(fontWeight = FontWeight.Bold)
+                    "italic" -> SpanStyle(fontStyle = FontStyle.Italic)
+                    "underline" -> SpanStyle(textDecoration = TextDecoration.Underline)
+                    else -> return@buildAnnotatedString
+                }
+
+                addStyle(
+                    style = newStyle,
+                    start = selection.start,
+                    end = selection.end
+                )
+            }
         }
 
         return TextFieldValue(
             annotatedString = newAnnotatedString,
             selection = selection  // Preserve selection
         )
+    }
+
+    /**
+     * Check if the specified range has the given format applied
+     */
+    private fun hasFormatInRange(
+        annotatedString: AnnotatedString,
+        start: Int,
+        end: Int,
+        formatType: String
+    ): Boolean {
+        // Check if any span of the specified format type covers the selection
+        return annotatedString.spanStyles.any { span ->
+            val isTargetFormat = when (formatType) {
+                "bold" -> span.item.fontWeight == FontWeight.Bold
+                "italic" -> span.item.fontStyle == FontStyle.Italic
+                "underline" -> span.item.textDecoration == TextDecoration.Underline
+                else -> false
+            }
+
+            // Check if this span overlaps with the selection range
+            isTargetFormat && span.start < end && span.end > start
+        }
     }
 
     /**
