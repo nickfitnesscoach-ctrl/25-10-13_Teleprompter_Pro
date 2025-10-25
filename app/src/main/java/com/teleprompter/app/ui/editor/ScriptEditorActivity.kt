@@ -5,6 +5,7 @@ import android.text.Html
 import android.text.Spanned
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
+import java.util.regex.Pattern
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.border
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -28,6 +30,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -64,6 +71,7 @@ class ScriptEditorActivity : ComponentActivity() {
         var title by remember { mutableStateOf("") }
         var content by remember { mutableStateOf(TextFieldValue("")) }
         var isLoading by remember { mutableStateOf(true) }
+        var showFontSelector by remember { mutableStateOf(false) }
 
         // Load existing script if editing
         LaunchedEffect(scriptId) {
@@ -208,6 +216,29 @@ class ScriptEditorActivity : ComponentActivity() {
                                 ) {
                                     Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
                                 }
+
+                                // Font selector button
+                                TextButton(
+                                    onClick = {
+                                        showFontSelector = true
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("T", fontSize = 18.sp)
+                                }
+                            }
+
+                            // Font selector dialog
+                            if (showFontSelector) {
+                                FontSelectorDialog(
+                                    onDismiss = { showFontSelector = false },
+                                    onFontSelected = { fontFamily ->
+                                        content = applyFontFamily(content, fontFamily)
+                                        showFontSelector = false
+                                    }
+                                )
                             }
 
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
@@ -292,6 +323,167 @@ class ScriptEditorActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Font Selector Dialog
+     */
+    @Composable
+    fun FontSelectorDialog(
+        onDismiss: () -> Unit,
+        onFontSelected: (FontFamily) -> Unit
+    ) {
+        var searchQuery by remember { mutableStateOf("") }
+
+        // Available fonts list
+        val availableFonts = remember {
+            listOf(
+                "Default" to FontFamily.Default,
+                "Serif" to FontFamily.Serif,
+                "Sans-Serif" to FontFamily.SansSerif,
+                "Monospace" to FontFamily.Monospace,
+                "Cursive" to FontFamily.Cursive
+            )
+        }
+
+        // Filter fonts based on search
+        val filteredFonts = remember(searchQuery) {
+            if (searchQuery.isEmpty()) {
+                availableFonts
+            } else {
+                availableFonts.filter {
+                    it.first.contains(searchQuery, ignoreCase = true)
+                }
+            }
+        }
+
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .fillMaxHeight(0.7f),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    // Title
+                    Text(
+                        text = "Select Font",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Search bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        placeholder = { Text("Search fonts...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
+
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    // Font list
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(filteredFonts) { (fontName, fontFamily) ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onFontSelected(fontFamily) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                )
+                            ) {
+                                Text(
+                                    text = fontName,
+                                    fontFamily = fontFamily,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Close button
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    ) {
+                        Text("Close")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply font family to selected text
+     */
+    private fun applyFontFamily(textFieldValue: TextFieldValue, fontFamily: FontFamily): TextFieldValue {
+        val selection = textFieldValue.selection
+
+        // If no text is selected, return unchanged
+        if (selection.start == selection.end) {
+            return textFieldValue
+        }
+
+        val originalAnnotated = textFieldValue.annotatedString
+
+        // Build new AnnotatedString with font family applied
+        val newAnnotatedString = buildAnnotatedString {
+            append(originalAnnotated.text)
+
+            // Copy all existing styles
+            originalAnnotated.spanStyles.forEach { span ->
+                addStyle(span.item, span.start, span.end)
+            }
+
+            // Add font family to selected range
+            addStyle(
+                style = SpanStyle(fontFamily = fontFamily),
+                start = selection.start,
+                end = selection.end
+            )
+        }
+
+        return TextFieldValue(
+            annotatedString = newAnnotatedString,
+            selection = selection  // Preserve selection
+        )
     }
 
     /**
@@ -458,6 +650,20 @@ class ScriptEditorActivity : ComponentActivity() {
             var openTags = ""
             var closeTags = ""
 
+            // Font family handling
+            val fontFamilyName = when (style.fontFamily) {
+                FontFamily.Serif -> "serif"
+                FontFamily.SansSerif -> "sans-serif"
+                FontFamily.Monospace -> "monospace"
+                FontFamily.Cursive -> "cursive"
+                else -> null
+            }
+
+            if (fontFamilyName != null) {
+                openTags += "<span style=\"font-family: $fontFamilyName;\">"
+                closeTags = "</span>$closeTags"
+            }
+
             if (style.fontWeight == FontWeight.Bold) {
                 openTags += "<b>"
                 closeTags = "</b>$closeTags"
@@ -494,6 +700,7 @@ class ScriptEditorActivity : ComponentActivity() {
             return AnnotatedString("")
         }
 
+
         // Parse HTML to Spanned
         val spanned: Spanned = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
@@ -502,9 +709,42 @@ class ScriptEditorActivity : ComponentActivity() {
             Html.fromHtml(html)
         }
 
+        // Calculate positions for font-family spans after HTML parsing
+        val text = spanned.toString()
+
         // Convert Spanned to AnnotatedString
         return buildAnnotatedString {
-            append(spanned.toString())
+            append(text)
+
+            // Apply font families based on HTML structure
+            var textIndex = 0
+            var currentFontFamily: FontFamily? = null
+            var fontStartIndex = 0
+
+            for (i in html.indices) {
+                if (html.substring(i).startsWith("<span style=\"font-family:")) {
+                    val endIndex = html.indexOf(">", i)
+                    val styleContent = html.substring(i, endIndex)
+                    val familyMatch = Pattern.compile("font-family: ([^;\"]+)").matcher(styleContent)
+                    if (familyMatch.find()) {
+                        currentFontFamily = when (familyMatch.group(1)?.trim()) {
+                            "serif" -> FontFamily.Serif
+                            "sans-serif" -> FontFamily.SansSerif
+                            "monospace" -> FontFamily.Monospace
+                            "cursive" -> FontFamily.Cursive
+                            else -> FontFamily.Default
+                        }
+                        fontStartIndex = textIndex
+                    }
+                } else if (html.substring(i).startsWith("</span>") && currentFontFamily != null) {
+                    if (fontStartIndex < textIndex && textIndex <= text.length) {
+                        addStyle(SpanStyle(fontFamily = currentFontFamily), fontStartIndex, textIndex)
+                    }
+                    currentFontFamily = null
+                } else if (!html.substring(i).startsWith("<")) {
+                    textIndex++
+                }
+            }
 
             // Apply styles from Spanned
             spanned.getSpans(0, spanned.length, Any::class.java).forEach { span ->
