@@ -389,6 +389,28 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
+     * Expand touch area of a view for better touch responsiveness
+     * @param view The view to expand touch area for
+     * @param extraDp Additional touch area in dp on all sides
+     */
+    private fun expandTouchArea(view: View, extraDp: Int) {
+        val parent = view.parent as? View ?: return
+        val extraPx = (extraDp * resources.displayMetrics.density).toInt()
+
+        parent.post {
+            val rect = android.graphics.Rect()
+            view.getHitRect(rect)
+            rect.top -= extraPx
+            rect.left -= extraPx
+            rect.bottom += extraPx
+            rect.right += extraPx
+
+            parent.touchDelegate = android.view.TouchDelegate(rect, view)
+            Log.d("TeleprompterService", "Expanded touch area for ${view.id} by ${extraDp}dp")
+        }
+    }
+
+    /**
      * Setup overlay views and button listeners
      */
     @SuppressLint("ClickableViewAccessibility")
@@ -467,10 +489,17 @@ class TeleprompterOverlayService : LifecycleService() {
         btnFaster?.setOnTouchListener(fasterTouchListener)
         btnFasterTop?.setOnTouchListener(fasterTouchListener)
 
-        // Setup drag button
+        // Setup drag button with improved touch handling and expanded touch area
         val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
-        btnDrag?.setOnTouchListener { _, event ->
-            handleDragTouch(event)
+        btnDrag?.let { button ->
+            // Expand touch area by 12dp on all sides for better responsiveness
+            expandTouchArea(button, 12)
+
+            button.setOnTouchListener { v, event ->
+                // Request parent not to intercept touch events
+                v.parent.requestDisallowInterceptTouchEvent(true)
+                handleDragTouch(event)
+            }
         }
 
         // Setup resize button
@@ -995,23 +1024,26 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
-     * Handle drag touch events
+     * Handle drag touch events with improved sensitivity and response
      */
     private fun handleDragTouch(event: MotionEvent): Boolean {
         val params = layoutParams ?: return false
 
-        when (event.action) {
+        when (event.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
                 isDragging = true
                 initialX = params.x
                 initialY = params.y
                 initialTouchX = event.rawX
                 initialTouchY = event.rawY
+
+                Log.d("TeleprompterService", "Drag started at: rawX=${event.rawX}, rawY=${event.rawY}")
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
                 if (isDragging) {
+                    // Calculate movement delta with higher precision
                     val deltaX = (event.rawX - initialTouchX).toInt()
                     val deltaY = (event.rawY - initialTouchY).toInt()
 
@@ -1027,12 +1059,18 @@ class TeleprompterOverlayService : LifecycleService() {
                     val overlayWidth = overlayView?.width ?: 0
                     val overlayHeight = overlayView?.height ?: 0
 
-                    // Constrain to screen bounds
+                    // Constrain to screen bounds with more lenient boundaries
                     params.x = newX.coerceIn(-overlayWidth / 2, screenWidth - overlayWidth / 2)
                     params.y = newY.coerceIn(0, screenHeight - overlayHeight)
 
-                    // Update view layout
-                    overlayView?.let { windowManager.updateViewLayout(it, params) }
+                    // Update view layout immediately for smooth tracking
+                    overlayView?.let {
+                        try {
+                            windowManager.updateViewLayout(it, params)
+                        } catch (e: Exception) {
+                            Log.e("TeleprompterService", "Error updating view layout during drag", e)
+                        }
+                    }
                 }
                 return true
             }
@@ -1047,6 +1085,11 @@ class TeleprompterOverlayService : LifecycleService() {
                         Log.d("TeleprompterService", "Saved overlay position: x=${params.x}, y=${params.y}")
                     }
                 }
+                return true
+            }
+
+            MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
+                // Ignore multi-touch gestures for dragging
                 return true
             }
 
@@ -1207,7 +1250,7 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
-     * Setup interactions for PIP mode
+     * Setup interactions for PIP mode with improved touch handling
      */
     @SuppressLint("ClickableViewAccessibility")
     private fun setupPipInteractions(params: WindowManager.LayoutParams) {
@@ -1225,8 +1268,11 @@ class TeleprompterOverlayService : LifecycleService() {
         var isDragging = false
         var hasMoved = false
 
-        pipContainer.setOnTouchListener { _, event ->
-            when (event.action) {
+        pipContainer.setOnTouchListener { v, event ->
+            // Request parent not to intercept touch events
+            v.parent?.requestDisallowInterceptTouchEvent(true)
+
+            when (event.action and MotionEvent.ACTION_MASK) {
                 MotionEvent.ACTION_DOWN -> {
                     isDragging = true
                     hasMoved = false
@@ -1234,6 +1280,7 @@ class TeleprompterOverlayService : LifecycleService() {
                     initialY = params.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    Log.d("TeleprompterService", "PIP drag started at: rawX=${event.rawX}, rawY=${event.rawY}")
                     true
                 }
 
@@ -1242,16 +1289,22 @@ class TeleprompterOverlayService : LifecycleService() {
                         val deltaX = (initialTouchX - event.rawX).toInt()
                         val deltaY = (event.rawY - initialTouchY).toInt()
 
-                        // Check if actually moved (more than 10px)
-                        if (kotlin.math.abs(deltaX) > 10 || kotlin.math.abs(deltaY) > 10) {
+                        // Check if actually moved (reduced threshold for better responsiveness)
+                        if (kotlin.math.abs(deltaX) > 5 || kotlin.math.abs(deltaY) > 5) {
                             hasMoved = true
                         }
 
                         params.x = initialX + deltaX
                         params.y = initialY + deltaY
 
-                        // Update view layout
-                        pipView?.let { windowManager.updateViewLayout(it, params) }
+                        // Update view layout immediately for smooth tracking
+                        pipView?.let {
+                            try {
+                                windowManager.updateViewLayout(it, params)
+                            } catch (e: Exception) {
+                                Log.e("TeleprompterService", "Error updating PIP view layout during drag", e)
+                            }
+                        }
                     }
                     true
                 }
@@ -1259,9 +1312,15 @@ class TeleprompterOverlayService : LifecycleService() {
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (isDragging && !hasMoved) {
                         // Tap detected - exit PIP mode
+                        Log.d("TeleprompterService", "PIP tap detected, exiting PIP mode")
                         exitPipMode()
                     }
                     isDragging = false
+                    true
+                }
+
+                MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
+                    // Ignore multi-touch gestures for PIP
                     true
                 }
 

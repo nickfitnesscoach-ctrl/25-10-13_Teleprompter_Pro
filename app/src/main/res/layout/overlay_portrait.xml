@@ -223,7 +223,9 @@
                     android:tint="@color/white"
                     android:contentDescription="@string/content_desc_drag"
                     android:layout_marginEnd="@dimen/button_spacing"
-                    android:scaleType="centerInside" />
+                    android:scaleType="centerInside"
+                    android:clickable="true"
+                    android:focusable="true" />
 
                 <ImageButton
                     android:id="@+id/btnResize"
