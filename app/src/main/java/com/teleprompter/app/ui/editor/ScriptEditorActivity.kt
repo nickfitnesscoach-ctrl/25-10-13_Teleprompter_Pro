@@ -83,7 +83,27 @@ class ScriptEditorActivity : ComponentActivity() {
                     title = script.title
                     // Convert HTML back to AnnotatedString
                     val annotatedString = htmlToAnnotatedString(script.content)
-                    content = TextFieldValue(annotatedString = annotatedString)
+
+                    // Load saved font family from preferences and apply it
+                    val overlayPreferences = OverlayPreferences(this@ScriptEditorActivity)
+                    val savedFontName = overlayPreferences.getFontFamily()
+                    val fontFamily = when (savedFontName) {
+                        "bebas_neue" -> FontFamily(Font(R.font.bebas_neue))
+                        "comfortaa_regular" -> FontFamily(Font(R.font.comfortaa_regular))
+                        "drukcyr_bold" -> FontFamily(Font(R.font.drukcyr_bold))
+                        "montserrat_regular" -> FontFamily(Font(R.font.montserrat_regular))
+                        "opensans_regular" -> FontFamily(Font(R.font.opensans_regular))
+                        "oswald_regular" -> FontFamily(Font(R.font.oswald_regular))
+                        "ptsans_regular" -> FontFamily(Font(R.font.ptsans_regular))
+                        "raleway_regular" -> FontFamily(Font(R.font.raleway_regular))
+                        "roboto_regular" -> FontFamily(Font(R.font.roboto_regular))
+                        "ubuntu_regular" -> FontFamily(Font(R.font.ubuntu_regular))
+                        else -> FontFamily.Default
+                    }
+
+                    // Apply font to the loaded content
+                    val contentWithFont = applyFontFamily(TextFieldValue(annotatedString = annotatedString), fontFamily)
+                    content = contentWithFont
                 }
             }
             isLoading = false
@@ -691,65 +711,75 @@ class ScriptEditorActivity : ComponentActivity() {
      */
     private fun annotatedStringToHtml(annotatedString: AnnotatedString): String {
         val text = annotatedString.text
+        if (text.isEmpty()) {
+            return ""
+        }
+
+        // If no styles, return plain text
         if (annotatedString.spanStyles.isEmpty()) {
             return text
         }
 
-        val htmlBuilder = StringBuilder()
-        var currentIndex = 0
-
-        // Sort spans by start position
-        val sortedSpans = annotatedString.spanStyles.sortedBy { it.start }
-
-        for (span in sortedSpans) {
-            // Add text before span
-            if (span.start > currentIndex) {
-                htmlBuilder.append(text.substring(currentIndex, span.start))
-            }
-
-            // Open tags
-            val style = span.item
-            var openTags = ""
-            var closeTags = ""
-
-            // Font family handling
-            val fontFamilyName = when (style.fontFamily) {
-                FontFamily.Serif -> "serif"
-                FontFamily.SansSerif -> "sans-serif"
-                FontFamily.Monospace -> "monospace"
-                FontFamily.Cursive -> "cursive"
-                // Note: Custom fonts like Bebas Neue are applied globally, not per-span
-                else -> null
-            }
-
-            if (fontFamilyName != null) {
-                openTags += "<span style=\"font-family: $fontFamilyName;\">"
-                closeTags = "</span>$closeTags"
-            }
-
-            if (style.fontWeight == FontWeight.Bold) {
-                openTags += "<b>"
-                closeTags = "</b>$closeTags"
-            }
-            if (style.fontStyle == FontStyle.Italic) {
-                openTags += "<i>"
-                closeTags = "</i>$closeTags"
-            }
-            if (style.textDecoration == TextDecoration.Underline) {
-                openTags += "<u>"
-                closeTags = "</u>$closeTags"
-            }
-
-            htmlBuilder.append(openTags)
-            htmlBuilder.append(text.substring(span.start, span.end))
-            htmlBuilder.append(closeTags)
-
-            currentIndex = span.end
+        // IMPORTANT: Ignore fontFamily spans! Only process bold, italic, underline.
+        // FontFamily is stored separately in preferences.
+        val relevantSpans = annotatedString.spanStyles.filter { span ->
+            span.item.fontWeight == FontWeight.Bold ||
+            span.item.fontStyle == FontStyle.Italic ||
+            span.item.textDecoration == TextDecoration.Underline
         }
 
-        // Add remaining text
-        if (currentIndex < text.length) {
-            htmlBuilder.append(text.substring(currentIndex))
+        if (relevantSpans.isEmpty()) {
+            return text
+        }
+
+        // Build a map of position -> active styles
+        data class StyleChange(val position: Int, val isBold: Boolean, val isItalic: Boolean, val isUnderline: Boolean)
+
+        val styleChanges = mutableListOf<Int>()
+        relevantSpans.forEach { span ->
+            styleChanges.add(span.start)
+            styleChanges.add(span.end)
+        }
+        styleChanges.add(0)
+        styleChanges.add(text.length)
+        val positions = styleChanges.distinct().sorted()
+
+        val htmlBuilder = StringBuilder()
+
+        for (i in 0 until positions.size - 1) {
+            val start = positions[i]
+            val end = positions[i + 1]
+
+            if (start >= end) continue
+
+            // Determine active styles at this position
+            var isBold = false
+            var isItalic = false
+            var isUnderline = false
+
+            relevantSpans.forEach { span ->
+                if (span.start <= start && span.end >= end) {
+                    if (span.item.fontWeight == FontWeight.Bold) isBold = true
+                    if (span.item.fontStyle == FontStyle.Italic) isItalic = true
+                    if (span.item.textDecoration == TextDecoration.Underline) isUnderline = true
+                }
+            }
+
+            // Build tags
+            val textSegment = text.substring(start, end)
+            if (!isBold && !isItalic && !isUnderline) {
+                htmlBuilder.append(textSegment)
+            } else {
+                if (isBold) htmlBuilder.append("<b>")
+                if (isItalic) htmlBuilder.append("<i>")
+                if (isUnderline) htmlBuilder.append("<u>")
+
+                htmlBuilder.append(textSegment)
+
+                if (isUnderline) htmlBuilder.append("</u>")
+                if (isItalic) htmlBuilder.append("</i>")
+                if (isBold) htmlBuilder.append("</b>")
+            }
         }
 
         return htmlBuilder.toString()
@@ -779,41 +809,9 @@ class ScriptEditorActivity : ComponentActivity() {
         return buildAnnotatedString {
             append(text)
 
-            // Apply font families based on HTML structure
-            var textIndex = 0
-            var currentFontFamily: FontFamily? = null
-            var fontStartIndex = 0
-
-            for (i in html.indices) {
-                if (html.substring(i).startsWith("<span style=\"font-family:")) {
-                    val endIndex = html.indexOf(">", i)
-                    val styleContent = html.substring(i, endIndex)
-                    val familyMatch = Pattern.compile("font-family: ([^;\"]+)").matcher(styleContent)
-                    if (familyMatch.find()) {
-                        currentFontFamily = when (familyMatch.group(1)?.trim()) {
-                            "bebas_neue" -> FontFamily(Font(R.font.bebas_neue))
-                            "comfortaa_regular" -> FontFamily(Font(R.font.comfortaa_regular))
-                            "drukcyr_bold" -> FontFamily(Font(R.font.drukcyr_bold))
-                            "montserrat_regular" -> FontFamily(Font(R.font.montserrat_regular))
-                            "opensans_regular" -> FontFamily(Font(R.font.opensans_regular))
-                            "oswald_regular" -> FontFamily(Font(R.font.oswald_regular))
-                            "ptsans_regular" -> FontFamily(Font(R.font.ptsans_regular))
-                            "raleway_regular" -> FontFamily(Font(R.font.raleway_regular))
-                            "roboto_regular" -> FontFamily(Font(R.font.roboto_regular))
-                            "ubuntu_regular" -> FontFamily(Font(R.font.ubuntu_regular))
-                            else -> FontFamily.Default
-                        }
-                        fontStartIndex = textIndex
-                    }
-                } else if (html.substring(i).startsWith("</span>") && currentFontFamily != null) {
-                    if (fontStartIndex < textIndex && textIndex <= text.length) {
-                        addStyle(SpanStyle(fontFamily = currentFontFamily), fontStartIndex, textIndex)
-                    }
-                    currentFontFamily = null
-                } else if (!html.substring(i).startsWith("<")) {
-                    textIndex++
-                }
-            }
+            // IMPORTANT: Don't load fontFamily from HTML!
+            // Font family is applied globally via preferences after loading.
+            // We only load bold, italic, and underline styles from HTML.
 
             // Apply styles from Spanned
             spanned.getSpans(0, spanned.length, Any::class.java).forEach { span ->
