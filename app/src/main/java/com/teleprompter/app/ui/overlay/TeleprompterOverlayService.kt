@@ -772,13 +772,28 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
-     * Apply current opacity to overlay root view
+     * Apply current opacity to overlay with different alpha for background and text
+     * 100 = fully opaque black background with bright white text
+     * 0 = nearly transparent background with slightly visible text
      */
     private fun applyOverlayOpacity() {
         val view = overlayView ?: return
-        // Convert 0-100 to 0.0-1.0 alpha
-        val alpha = currentOpacity / 100f
-        view.alpha = alpha
+        val textView = scriptTextView ?: return
+
+        // Background opacity: 100 -> 1.0 (solid black), 0 -> 0.1 (almost invisible)
+        // Using quadratic curve for smoother transition: makes middle range more visible
+        val backgroundAlpha = 0.1f + (currentOpacity / 100f) * 0.9f
+
+        // Text opacity: 100 -> 1.0 (bright white), 0 -> 0.4 (still readable)
+        // Text stays more visible than background
+        val textAlpha = 0.4f + (currentOpacity / 100f) * 0.6f
+
+        // Apply to background panels
+        view.findViewById<View>(R.id.scriptScrollView)?.alpha = backgroundAlpha
+        view.findViewById<View>(R.id.controlButtons)?.alpha = backgroundAlpha
+
+        // Apply to text separately to keep it more visible
+        textView.alpha = textAlpha
     }
 
     /**
