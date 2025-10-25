@@ -37,6 +37,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.teleprompter.app.R
 import com.teleprompter.app.data.db.AppDatabase
 import com.teleprompter.app.data.models.Script
 import com.teleprompter.app.data.preferences.OverlayPreferences

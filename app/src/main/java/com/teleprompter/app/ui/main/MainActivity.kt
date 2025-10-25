@@ -116,9 +116,6 @@ class MainActivity : ComponentActivity() {
      */
     private fun convertMarkdownToAnnotatedString(text: String): AnnotatedString {
         return buildAnnotatedString {
-            var workingText = text
-            var offset = 0
-
             // Process in order: Bold, Underline, Italic (important: __ before _)
             // Find all markers with their positions
             data class Marker(val start: Int, val end: Int, val type: String, val content: String)
