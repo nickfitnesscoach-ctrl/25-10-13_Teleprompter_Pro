@@ -25,6 +25,7 @@ class OverlayPreferences(private val context: Context) {
         private val OVERLAY_HEIGHT = intPreferencesKey("overlay_height")
         private val TEXT_SIZE = floatPreferencesKey("text_size")
         private val TEXT_ALIGNMENT = intPreferencesKey("text_alignment")
+        private val OVERLAY_OPACITY = intPreferencesKey("overlay_opacity")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
@@ -33,6 +34,7 @@ class OverlayPreferences(private val context: Context) {
         const val DEFAULT_HEIGHT = 800 // Default height in pixels (approximately 400dp on most devices)
         const val DEFAULT_TEXT_SIZE = 28f // Default text size in sp
         const val DEFAULT_TEXT_ALIGNMENT = 0 // 0 = start, 1 = center, 2 = end
+        const val DEFAULT_OPACITY = 100 // 0-100, where 100 is fully opaque
     }
 
     /**
@@ -208,5 +210,27 @@ class OverlayPreferences(private val context: Context) {
         }
 
         return alignment
+    }
+
+    /**
+     * Save overlay opacity (0-100)
+     */
+    suspend fun saveOverlayOpacity(opacity: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[OVERLAY_OPACITY] = opacity.coerceIn(0, 100)
+        }
+    }
+
+    /**
+     * Get overlay opacity synchronously (for initial load)
+     */
+    suspend fun getOverlayOpacity(): Int {
+        var opacity = DEFAULT_OPACITY
+
+        context.dataStore.edit { preferences ->
+            opacity = preferences[OVERLAY_OPACITY] ?: DEFAULT_OPACITY
+        }
+
+        return opacity
     }
 }

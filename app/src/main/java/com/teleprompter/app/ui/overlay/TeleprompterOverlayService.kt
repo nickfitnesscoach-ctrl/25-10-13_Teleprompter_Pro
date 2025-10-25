@@ -83,6 +83,10 @@ class TeleprompterOverlayService : LifecycleService() {
     // Text alignment
     private var currentAlignment = 0 // 0 = start, 1 = center, 2 = end
 
+    // Overlay opacity
+    private var currentOpacity = 100 // 0-100, where 100 is fully opaque
+    private var isOpacityPanelVisible = false
+
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
     private var isScrolling = false
@@ -506,6 +510,9 @@ class TeleprompterOverlayService : LifecycleService() {
             toggleTextAlignment()
         }
 
+        // Setup opacity button and slider
+        setupOpacityControls()
+
         // Setup pinch-to-zoom for text size
         setupTextSizeGesture()
 
@@ -715,6 +722,63 @@ class TeleprompterOverlayService : LifecycleService() {
             else -> Gravity.START or Gravity.TOP
         }
         textView.gravity = gravity
+    }
+
+    /**
+     * Setup opacity controls (button and slider)
+     */
+    private fun setupOpacityControls() {
+        val view = overlayView ?: return
+        val btnOpacity = view.findViewById<ImageButton>(R.id.btnOpacity)
+        val opacitySliderPanel = view.findViewById<View>(R.id.opacitySliderPanel)
+        val opacitySeekBar = view.findViewById<android.widget.SeekBar>(R.id.opacitySeekBar)
+        val opacityValueText = view.findViewById<TextView>(R.id.opacityValueText)
+
+        // Load saved opacity
+        lifecycleScope.launch {
+            currentOpacity = overlayPreferences.getOverlayOpacity()
+            opacitySeekBar?.progress = currentOpacity
+            opacityValueText?.text = currentOpacity.toString()
+            applyOverlayOpacity()
+        }
+
+        // Toggle opacity slider panel visibility
+        btnOpacity?.setOnClickListener {
+            isOpacityPanelVisible = !isOpacityPanelVisible
+            opacitySliderPanel?.visibility = if (isOpacityPanelVisible) View.VISIBLE else View.GONE
+        }
+
+        // Setup seekbar listener
+        opacitySeekBar?.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    currentOpacity = progress
+                    opacityValueText?.text = progress.toString()
+                    applyOverlayOpacity()
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
+                // Not needed
+            }
+
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                // Save opacity when user releases slider
+                lifecycleScope.launch {
+                    overlayPreferences.saveOverlayOpacity(currentOpacity)
+                }
+            }
+        })
+    }
+
+    /**
+     * Apply current opacity to overlay root view
+     */
+    private fun applyOverlayOpacity() {
+        val view = overlayView ?: return
+        // Convert 0-100 to 0.0-1.0 alpha
+        val alpha = currentOpacity / 100f
+        view.alpha = alpha
     }
 
     /**
