@@ -345,6 +345,7 @@ class ScriptEditorActivity : ComponentActivity() {
             listOf(
                 "Default" to FontFamily.Default,
                 "Bebas Neue" to FontFamily(Font(R.font.bebas_neue)),
+                "Druk Cyr Bold" to FontFamily(Font(R.font.drukcyr_bold)),
                 "Serif" to FontFamily.Serif,
                 "Sans-Serif" to FontFamily.SansSerif,
                 "Monospace" to FontFamily.Monospace,
@@ -823,6 +824,7 @@ class ScriptEditorActivity : ComponentActivity() {
     private fun saveFontFamilyToPreferences(fontName: String) {
         val fontFamilyName = when (fontName) {
             "Bebas Neue" -> "bebas_neue"
+            "Druk Cyr Bold" -> "drukcyr_bold"
             "Serif" -> "serif"
             "Sans-Serif" -> "sans-serif"
             "Monospace" -> "monospace"

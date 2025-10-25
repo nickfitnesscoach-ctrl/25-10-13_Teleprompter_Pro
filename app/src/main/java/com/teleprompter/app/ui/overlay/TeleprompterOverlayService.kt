@@ -748,6 +748,14 @@ class TeleprompterOverlayService : LifecycleService() {
                     Typeface.DEFAULT
                 }
             }
+            "drukcyr_bold" -> {
+                try {
+                    resources.getFont(R.font.drukcyr_bold)
+                } catch (e: Exception) {
+                    Log.e("TeleprompterService", "Error loading Druk Cyr Bold font: ${e.message}")
+                    Typeface.DEFAULT
+                }
+            }
             else -> Typeface.DEFAULT
         }
         textView.typeface = typeface
