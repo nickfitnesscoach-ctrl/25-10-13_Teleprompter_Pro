@@ -3,7 +3,7 @@
     android:height="40dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Diagonal line with triangle arrowheads at both ends (top-left to bottom-right) -->
+    <!-- Diagonal line with rounded arrow corners -->
     <group>
         <!-- Main diagonal line -->
         <path
@@ -11,13 +11,19 @@
             android:strokeWidth="2"
             android:strokeLineCap="round"
             android:pathData="M8,8L16,16"/>
-        <!-- Top-left triangle arrowhead (bigger) -->
+        <!-- Top-left arrow (L-shape with rounded corners) -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M4,4 L11,4 L4,11 Z"/>
-        <!-- Bottom-right triangle arrowhead (bigger) -->
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M4,9 L4,4 L9,4"/>
+        <!-- Bottom-right arrow (L-shape with rounded corners) -->
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M20,20 L13,20 L20,13 Z"/>
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M20,15 L20,20 L15,20"/>
     </group>
 </vector>

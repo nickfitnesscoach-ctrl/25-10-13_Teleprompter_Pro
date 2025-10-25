@@ -767,7 +767,7 @@ class TeleprompterOverlayService : LifecycleService() {
     /**
      * Apply current opacity to overlay with text being 30% less transparent
      * Example: Overlay 50% -> Text 80%, Overlay 40% -> Text 70%
-     * Uses background color alpha instead of view alpha to avoid affecting children
+     * Uses drawable with rounded corners to maintain design
      */
     private fun applyOverlayOpacity() {
         val view = overlayView ?: return
@@ -780,13 +780,23 @@ class TeleprompterOverlayService : LifecycleService() {
         val textOpacity = (currentOpacity + 30).coerceAtMost(100)
         val textAlphaInt = (textOpacity * 2.55f).toInt()
 
-        // Apply to background panels by changing background color with alpha
-        // Format: #AARRGGBB where AA is alpha (00-FF)
-        val overlayColor = android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0) // Black with alpha
-        val controlColor = android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0) // Black with alpha
+        // Create rounded rectangle drawable for text area (16dp corners)
+        val textPanelDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            setColor(android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0))
+            cornerRadius = resources.getDimension(R.dimen.text_area_corner_radius)
+        }
 
-        view.findViewById<View>(R.id.scriptScrollView)?.setBackgroundColor(overlayColor)
-        view.findViewById<View>(R.id.controlButtons)?.setBackgroundColor(controlColor)
+        // Create rounded rectangle drawable for control panel (20dp corners)
+        val controlPanelDrawable = android.graphics.drawable.GradientDrawable().apply {
+            shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+            setColor(android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0))
+            cornerRadius = resources.getDimension(R.dimen.control_panel_corner_radius)
+        }
+
+        // Apply drawables with rounded corners
+        view.findViewById<View>(R.id.scriptScrollView)?.background = textPanelDrawable
+        view.findViewById<View>(R.id.controlButtons)?.background = controlPanelDrawable
 
         // Apply to text using textColor with alpha
         val textColor = android.graphics.Color.argb(textAlphaInt, 255, 255, 255) // White with alpha
