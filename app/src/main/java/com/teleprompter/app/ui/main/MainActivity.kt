@@ -33,7 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -99,6 +106,89 @@ class MainActivity : ComponentActivity() {
         setContent {
             TelePrompterTheme {
                 MainScreen()
+            }
+        }
+    }
+
+    /**
+     * Convert markdown-style formatting to AnnotatedString for Compose Text
+     * Supports: **bold**, _italic_, __underline__
+     */
+    private fun convertMarkdownToAnnotatedString(text: String): AnnotatedString {
+        return buildAnnotatedString {
+            var workingText = text
+            var offset = 0
+
+            // Process in order: Bold, Underline, Italic (important: __ before _)
+            // Find all markers with their positions
+            data class Marker(val start: Int, val end: Int, val type: String, val content: String)
+            val markers = mutableListOf<Marker>()
+
+            // Find bold **text**
+            Regex("""\*\*(.+?)\*\*""").findAll(text).forEach { match ->
+                markers.add(Marker(
+                    start = match.range.first,
+                    end = match.range.last + 1,
+                    type = "bold",
+                    content = match.groupValues[1]
+                ))
+            }
+
+            // Find underline __text__
+            Regex("""__(.+?)__""").findAll(text).forEach { match ->
+                markers.add(Marker(
+                    start = match.range.first,
+                    end = match.range.last + 1,
+                    type = "underline",
+                    content = match.groupValues[1]
+                ))
+            }
+
+            // Find italic _text_ (but not __)
+            Regex("""(?<!_)_([^_]+?)_(?!_)""").findAll(text).forEach { match ->
+                markers.add(Marker(
+                    start = match.range.first,
+                    end = match.range.last + 1,
+                    type = "italic",
+                    content = match.groupValues[1]
+                ))
+            }
+
+            // Sort markers by start position
+            val sortedMarkers = markers.sortedBy { it.start }
+
+            var currentIndex = 0
+            for (marker in sortedMarkers) {
+                // Add text before marker
+                if (marker.start > currentIndex) {
+                    append(text.substring(currentIndex, marker.start))
+                }
+
+                // Add styled text
+                when (marker.type) {
+                    "bold" -> {
+                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(marker.content)
+                        }
+                    }
+                    "italic" -> {
+                        withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
+                            append(marker.content)
+                        }
+                    }
+                    "underline" -> {
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                            append(marker.content)
+                        }
+                    }
+                }
+
+                currentIndex = marker.end
+            }
+
+            // Add remaining text
+            if (currentIndex < text.length) {
+                append(text.substring(currentIndex))
             }
         }
     }
@@ -340,7 +430,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = script.title,
+                                text = convertMarkdownToAnnotatedString(script.title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,

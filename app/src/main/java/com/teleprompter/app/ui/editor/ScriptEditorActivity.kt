@@ -1,21 +1,31 @@
 package com.teleprompter.app.ui.editor
 
 import android.os.Bundle
+import android.text.Html
+import android.text.Spanned
+import android.text.style.StyleSpan
+import android.text.style.UnderlineSpan
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
@@ -62,7 +72,9 @@ class ScriptEditorActivity : ComponentActivity() {
                     database.scriptDao().getScriptById(id)
                 }?.let { script ->
                     title = script.title
-                    content = TextFieldValue(script.content)
+                    // Convert HTML back to AnnotatedString
+                    val annotatedString = htmlToAnnotatedString(script.content)
+                    content = TextFieldValue(annotatedString = annotatedString)
                 }
             }
             isLoading = false
@@ -75,7 +87,7 @@ class ScriptEditorActivity : ComponentActivity() {
                         Text(
                             text = if (scriptId == null) "New Script" else "Edit Script",
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     },
@@ -164,7 +176,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                 // Bold button
                                 TextButton(
                                     onClick = {
-                                        content = applyFormatting(content, "**")
+                                        content = applyFormatting(content, "bold")
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
@@ -176,7 +188,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                 // Italic button
                                 TextButton(
                                     onClick = {
-                                        content = applyFormatting(content, "_")
+                                        content = applyFormatting(content, "italic")
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
@@ -188,7 +200,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                 // Underline button
                                 TextButton(
                                     onClick = {
-                                        content = applyFormatting(content, "__")
+                                        content = applyFormatting(content, "underline")
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = MaterialTheme.colorScheme.primary
@@ -202,18 +214,47 @@ class ScriptEditorActivity : ComponentActivity() {
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Text field
-                            OutlinedTextField(
-                                value = content,
-                                onValueChange = { content = it },
-                                label = { Text("Script Content") },
+                            // Text field with AnnotatedString support
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxSize(),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                    .fillMaxSize()
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline,
+                                        shape = RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(12.dp)
+                            ) {
+                                BasicTextField(
+                                    value = content,
+                                    onValueChange = { newValue ->
+                                        // Check if only selection changed (cursor moved)
+                                        if (newValue.text == content.text) {
+                                            // Only selection changed - preserve annotatedString
+                                            content = newValue.copy(annotatedString = content.annotatedString)
+                                        } else {
+                                            // Text changed - preserve styles
+                                            content = preserveStyles(content, newValue)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    decorationBox = { innerTextField ->
+                                        Box {
+                                            if (content.text.isEmpty()) {
+                                                Text(
+                                                    "Script Content",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            }
+                                            innerTextField()
+                                        }
+                                    }
                                 )
-                            )
+                            }
                         }
                     }
 
@@ -233,7 +274,10 @@ class ScriptEditorActivity : ComponentActivity() {
                             Text("Cancel")
                         }
                         Button(
-                            onClick = { saveScript(title, content.text) },
+                            onClick = {
+                                val htmlContent = annotatedStringToHtml(content.annotatedString)
+                                saveScript(title, htmlContent)
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
                             enabled = title.isNotBlank() && content.text.isNotBlank(),
@@ -251,128 +295,184 @@ class ScriptEditorActivity : ComponentActivity() {
     }
 
     /**
-     * Apply markdown-style formatting to selected text or insert formatting markers at cursor
-     * Toggle functionality: adds or removes specific marker, preserving other formatting
+     * Preserve existing styles when text changes
      */
-    private fun applyFormatting(textFieldValue: TextFieldValue, marker: String): TextFieldValue {
-        val text = textFieldValue.text
-        val selection = textFieldValue.selection
+    private fun preserveStyles(oldValue: TextFieldValue, newValue: TextFieldValue): TextFieldValue {
+        // If text length didn't change significantly, preserve all styles
+        if (oldValue.text == newValue.text) {
+            return newValue
+        }
 
-        return if (selection.start != selection.end) {
-            // Text is selected
-            val selectedText = text.substring(selection.start, selection.end)
-            val beforeText = text.substring(0, selection.start)
-            val afterText = text.substring(selection.end)
+        val oldAnnotated = oldValue.annotatedString
+        val newText = newValue.text
 
-            // Strategy 1: Check if marker exists just outside selection
-            val hasMarkerBefore = beforeText.endsWith(marker)
-            val hasMarkerAfter = afterText.startsWith(marker)
+        // If no styles exist, return as is
+        if (oldAnnotated.spanStyles.isEmpty()) {
+            return newValue
+        }
 
-            if (hasMarkerBefore && hasMarkerAfter) {
-                // Remove markers from outside
-                val newBeforeText = beforeText.substring(0, beforeText.length - marker.length)
-                val newAfterText = afterText.substring(marker.length)
+        // Build new annotated string with preserved styles
+        val newAnnotated = buildAnnotatedString {
+            append(newText)
 
-                val newText = newBeforeText + selectedText + newAfterText
-                TextFieldValue(
-                    text = newText,
-                    selection = TextRange(
-                        selection.start - marker.length,
-                        selection.end - marker.length
-                    )
-                )
-            } else {
-                // Strategy 2: Check if marker exists inside the selection (at edges)
-                val markerInsideStart = selectedText.startsWith(marker)
-                val markerInsideEnd = selectedText.endsWith(marker)
+            // Copy all existing styles, adjusting positions
+            oldAnnotated.spanStyles.forEach { span ->
+                try {
+                    // Keep style if it's still within text bounds
+                    val adjustedStart = minOf(span.start, newText.length)
+                    val adjustedEnd = minOf(span.end, newText.length)
 
-                if (markerInsideStart && markerInsideEnd && selectedText.length > marker.length * 2) {
-                    // Remove markers from inside selection
-                    val newSelectedText = selectedText.substring(marker.length, selectedText.length - marker.length)
-
-                    val newText = beforeText + newSelectedText + afterText
-                    TextFieldValue(
-                        text = newText,
-                        selection = TextRange(
-                            selection.start,
-                            selection.start + newSelectedText.length
-                        )
-                    )
-                } else {
-                    // Strategy 3: Search for markers around current position with some tolerance
-                    val searchBefore = if (selection.start >= marker.length * 3) {
-                        text.substring(selection.start - marker.length * 3, selection.start)
-                    } else {
-                        text.substring(0, selection.start)
+                    if (adjustedStart < adjustedEnd) {
+                        addStyle(span.item, adjustedStart, adjustedEnd)
                     }
-
-                    val searchAfter = if (selection.end + marker.length * 3 <= text.length) {
-                        text.substring(selection.end, selection.end + marker.length * 3)
-                    } else {
-                        text.substring(selection.end)
-                    }
-
-                    val foundBefore = searchBefore.lastIndexOf(marker)
-                    val foundAfter = searchAfter.indexOf(marker)
-
-                    if (foundBefore != -1 && foundAfter != -1) {
-                        // Found markers around selection - remove them
-                        val actualBeforeIndex = selection.start - searchBefore.length + foundBefore
-                        val actualAfterIndex = selection.end + foundAfter
-
-                        val newText = text.substring(0, actualBeforeIndex) +
-                                text.substring(actualBeforeIndex + marker.length, actualAfterIndex) +
-                                text.substring(actualAfterIndex + marker.length)
-
-                        TextFieldValue(
-                            text = newText,
-                            selection = TextRange(
-                                actualBeforeIndex,
-                                actualAfterIndex - marker.length
-                            )
-                        )
-                    } else {
-                        // No markers found - add them
-                        val newText = beforeText + marker + selectedText + marker + afterText
-                        TextFieldValue(
-                            text = newText,
-                            selection = TextRange(
-                                selection.start + marker.length,
-                                selection.end + marker.length
-                            )
-                        )
-                    }
+                } catch (_: Exception) {
+                    // Skip invalid spans
                 }
             }
-        } else {
-            // No selection - insert markers at cursor position
-            val newText = text.substring(0, selection.start) +
-                    marker + marker +
-                    text.substring(selection.start)
-
-            TextFieldValue(
-                text = newText,
-                selection = TextRange(selection.start + marker.length)
-            )
         }
+
+        return newValue.copy(annotatedString = newAnnotated)
     }
 
     /**
-     * Convert markdown-style formatting to HTML for display
+     * Apply visual formatting (Bold/Italic/Underline) to selected text using AnnotatedString
+     * NO markdown markers - pure visual formatting like in professional teleprompters
      */
-    private fun convertMarkdownToHtml(text: String): String {
-        var html = text
+    private fun applyFormatting(textFieldValue: TextFieldValue, formatType: String): TextFieldValue {
+        val selection = textFieldValue.selection
 
-        // Bold: **text** -> <b>text</b>
-        html = html.replace(Regex("""\*\*([^*]+?)\*\*"""), "<b>$1</b>")
+        // If no text is selected, return unchanged
+        if (selection.start == selection.end) {
+            return textFieldValue
+        }
 
-        // Underline: __text__ -> <u>text</u> (process before single _)
-        html = html.replace(Regex("""__([^_]+?)__"""), "<u>$1</u>")
+        // Create new SpanStyle based on format type
+        val newStyle = when (formatType) {
+            "bold" -> SpanStyle(fontWeight = FontWeight.Bold)
+            "italic" -> SpanStyle(fontStyle = FontStyle.Italic)
+            "underline" -> SpanStyle(textDecoration = TextDecoration.Underline)
+            else -> return textFieldValue
+        }
 
-        // Italic: _text_ -> <i>text</i> (single _ only)
-        html = html.replace(Regex("""_([^_]+?)_"""), "<i>$1</i>")
+        // Build new AnnotatedString with the formatting applied
+        val originalAnnotated = textFieldValue.annotatedString
+        val newAnnotatedString = buildAnnotatedString {
+            // Copy everything
+            append(originalAnnotated)
 
-        return html
+            // Add new style span to selected range
+            addStyle(
+                style = newStyle,
+                start = selection.start,
+                end = selection.end
+            )
+        }
+
+        return TextFieldValue(
+            annotatedString = newAnnotatedString,
+            selection = selection  // Preserve selection
+        )
+    }
+
+    /**
+     * Convert AnnotatedString to HTML for database storage
+     */
+    private fun annotatedStringToHtml(annotatedString: AnnotatedString): String {
+        val text = annotatedString.text
+        if (annotatedString.spanStyles.isEmpty()) {
+            return text
+        }
+
+        val htmlBuilder = StringBuilder()
+        var currentIndex = 0
+
+        // Sort spans by start position
+        val sortedSpans = annotatedString.spanStyles.sortedBy { it.start }
+
+        for (span in sortedSpans) {
+            // Add text before span
+            if (span.start > currentIndex) {
+                htmlBuilder.append(text.substring(currentIndex, span.start))
+            }
+
+            // Open tags
+            val style = span.item
+            var openTags = ""
+            var closeTags = ""
+
+            if (style.fontWeight == FontWeight.Bold) {
+                openTags += "<b>"
+                closeTags = "</b>$closeTags"
+            }
+            if (style.fontStyle == FontStyle.Italic) {
+                openTags += "<i>"
+                closeTags = "</i>$closeTags"
+            }
+            if (style.textDecoration == TextDecoration.Underline) {
+                openTags += "<u>"
+                closeTags = "</u>$closeTags"
+            }
+
+            htmlBuilder.append(openTags)
+            htmlBuilder.append(text.substring(span.start, span.end))
+            htmlBuilder.append(closeTags)
+
+            currentIndex = span.end
+        }
+
+        // Add remaining text
+        if (currentIndex < text.length) {
+            htmlBuilder.append(text.substring(currentIndex))
+        }
+
+        return htmlBuilder.toString()
+    }
+
+    /**
+     * Convert HTML from database back to AnnotatedString
+     */
+    private fun htmlToAnnotatedString(html: String): AnnotatedString {
+        if (html.isEmpty()) {
+            return AnnotatedString("")
+        }
+
+        // Parse HTML to Spanned
+        val spanned: Spanned = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(html)
+        }
+
+        // Convert Spanned to AnnotatedString
+        return buildAnnotatedString {
+            append(spanned.toString())
+
+            // Apply styles from Spanned
+            spanned.getSpans(0, spanned.length, Any::class.java).forEach { span ->
+                val start = spanned.getSpanStart(span)
+                val end = spanned.getSpanEnd(span)
+
+                when (span) {
+                    is StyleSpan -> {
+                        when (span.style) {
+                            android.graphics.Typeface.BOLD -> {
+                                addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, end)
+                            }
+                            android.graphics.Typeface.ITALIC -> {
+                                addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, end)
+                            }
+                            android.graphics.Typeface.BOLD_ITALIC -> {
+                                addStyle(SpanStyle(fontWeight = FontWeight.Bold, fontStyle = FontStyle.Italic), start, end)
+                            }
+                        }
+                    }
+                    is UnderlineSpan -> {
+                        addStyle(SpanStyle(textDecoration = TextDecoration.Underline), start, end)
+                    }
+                }
+            }
+        }
     }
 
     private fun saveScript(title: String, content: String) {
