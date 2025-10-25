@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -28,7 +27,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
@@ -236,12 +234,12 @@ class ScriptEditorActivity : ComponentActivity() {
                             if (showFontSelector) {
                                 FontSelectorDialog(
                                     onDismiss = { showFontSelector = false },
-                                    onFontSelected = { fontFamily ->
+                                    onFontSelected = { fontName, fontFamily ->
                                         content = applyFontFamily(content, fontFamily)
                                         showFontSelector = false
 
                                         // Save font family to preferences for overlay
-                                        saveFontFamilyToPreferences(fontFamily)
+                                        saveFontFamilyToPreferences(fontName)
                                     }
                                 )
                             }
@@ -336,7 +334,7 @@ class ScriptEditorActivity : ComponentActivity() {
     @Composable
     fun FontSelectorDialog(
         onDismiss: () -> Unit,
-        onFontSelected: (FontFamily) -> Unit
+        onFontSelected: (String, FontFamily) -> Unit
     ) {
         var searchQuery by remember { mutableStateOf("") }
         var selectedFont by remember { mutableStateOf<Pair<String, FontFamily>?>(null) }
@@ -477,7 +475,7 @@ class ScriptEditorActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 selectedFont?.let { font ->
-                                    onFontSelected(font.second)
+                                    onFontSelected(font.first, font.second)
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -699,7 +697,7 @@ class ScriptEditorActivity : ComponentActivity() {
                 FontFamily.SansSerif -> "sans-serif"
                 FontFamily.Monospace -> "monospace"
                 FontFamily.Cursive -> "cursive"
-                FontFamily(Font(R.font.bebas_neue)) -> "bebas_neue"
+                // Note: Custom fonts like Bebas Neue are applied globally, not per-span
                 else -> null
             }
 
@@ -821,15 +819,13 @@ class ScriptEditorActivity : ComponentActivity() {
     /**
      * Save font family to preferences for overlay
      */
-    private fun saveFontFamilyToPreferences(fontFamily: FontFamily) {
-        val bebasNeueFamily = FontFamily(Font(R.font.bebas_neue))
-
-        val fontFamilyName = when {
-            fontFamily == FontFamily.Serif -> "serif"
-            fontFamily == FontFamily.SansSerif -> "sans-serif"
-            fontFamily == FontFamily.Monospace -> "monospace"
-            fontFamily == FontFamily.Cursive -> "cursive"
-            fontFamily == bebasNeueFamily -> "bebas_neue"
+    private fun saveFontFamilyToPreferences(fontName: String) {
+        val fontFamilyName = when (fontName) {
+            "Bebas Neue" -> "bebas_neue"
+            "Serif" -> "serif"
+            "Sans-Serif" -> "sans-serif"
+            "Monospace" -> "monospace"
+            "Cursive" -> "cursive"
             else -> "default"
         }
 
