@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.teleprompter.app.data.db.AppDatabase
 import com.teleprompter.app.data.models.Script
+import com.teleprompter.app.data.preferences.OverlayPreferences
 import com.teleprompter.app.ui.theme.TelePrompterTheme
 import com.teleprompter.app.utils.Constants
 import kotlinx.coroutines.launch
@@ -237,6 +238,9 @@ class ScriptEditorActivity : ComponentActivity() {
                                     onFontSelected = { fontFamily ->
                                         content = applyFontFamily(content, fontFamily)
                                         showFontSelector = false
+
+                                        // Save font family to preferences for overlay
+                                        saveFontFamilyToPreferences(fontFamily)
                                     }
                                 )
                             }
@@ -334,6 +338,7 @@ class ScriptEditorActivity : ComponentActivity() {
         onFontSelected: (FontFamily) -> Unit
     ) {
         var searchQuery by remember { mutableStateOf("") }
+        var selectedFont by remember { mutableStateOf<Pair<String, FontFamily>?>(null) }
 
         // Available fonts list
         val availableFonts = remember {
@@ -411,20 +416,36 @@ class ScriptEditorActivity : ComponentActivity() {
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        items(filteredFonts) { (fontName, fontFamily) ->
+                        items(filteredFonts) { font ->
+                            val isSelected = selectedFont == font
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onFontSelected(fontFamily) },
+                                    .clickable { selectedFont = font },
                                 shape = RoundedCornerShape(8.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                )
+                                    containerColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    }
+                                ),
+                                border = if (isSelected) {
+                                    androidx.compose.foundation.BorderStroke(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary
+                                    )
+                                } else null
                             ) {
                                 Text(
-                                    text = fontName,
-                                    fontFamily = fontFamily,
+                                    text = font.first,
+                                    fontFamily = font.second,
                                     style = MaterialTheme.typography.bodyLarge,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
                                     modifier = Modifier.padding(16.dp)
                                 )
                             }
@@ -433,17 +454,40 @@ class ScriptEditorActivity : ComponentActivity() {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Close button
-                    Button(
-                        onClick = onDismiss,
+                    // Action buttons
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Close")
+                        // Close button
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text("Close")
+                        }
+
+                        // Save button
+                        Button(
+                            onClick = {
+                                selectedFont?.let { font ->
+                                    onFontSelected(font.second)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = selectedFont != null,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Save")
+                        }
                     }
                 }
             }
@@ -451,38 +495,35 @@ class ScriptEditorActivity : ComponentActivity() {
     }
 
     /**
-     * Apply font family to selected text
+     * Apply font family to ALL text (global font change)
      */
     private fun applyFontFamily(textFieldValue: TextFieldValue, fontFamily: FontFamily): TextFieldValue {
-        val selection = textFieldValue.selection
-
-        // If no text is selected, return unchanged
-        if (selection.start == selection.end) {
-            return textFieldValue
-        }
-
         val originalAnnotated = textFieldValue.annotatedString
 
-        // Build new AnnotatedString with font family applied
+        // Build new AnnotatedString with font family applied to ALL text
         val newAnnotatedString = buildAnnotatedString {
             append(originalAnnotated.text)
 
-            // Copy all existing styles
+            // Copy all existing styles (bold, italic, underline)
             originalAnnotated.spanStyles.forEach { span ->
-                addStyle(span.item, span.start, span.end)
+                // Keep all styles except old fontFamily
+                val newStyle = span.item.copy(fontFamily = fontFamily)
+                addStyle(newStyle, span.start, span.end)
             }
 
-            // Add font family to selected range
-            addStyle(
-                style = SpanStyle(fontFamily = fontFamily),
-                start = selection.start,
-                end = selection.end
-            )
+            // Apply font family to entire text if no styles exist
+            if (originalAnnotated.spanStyles.isEmpty() && originalAnnotated.text.isNotEmpty()) {
+                addStyle(
+                    style = SpanStyle(fontFamily = fontFamily),
+                    start = 0,
+                    end = originalAnnotated.text.length
+                )
+            }
         }
 
         return TextFieldValue(
             annotatedString = newAnnotatedString,
-            selection = selection  // Preserve selection
+            selection = textFieldValue.selection  // Preserve selection
         )
     }
 
@@ -769,6 +810,26 @@ class ScriptEditorActivity : ComponentActivity() {
                         addStyle(SpanStyle(textDecoration = TextDecoration.Underline), start, end)
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Save font family to preferences for overlay
+     */
+    private fun saveFontFamilyToPreferences(fontFamily: FontFamily) {
+        val fontFamilyName = when (fontFamily) {
+            FontFamily.Serif -> "serif"
+            FontFamily.SansSerif -> "sans-serif"
+            FontFamily.Monospace -> "monospace"
+            FontFamily.Cursive -> "cursive"
+            else -> "default"
+        }
+
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val overlayPreferences = OverlayPreferences(this@ScriptEditorActivity)
+                overlayPreferences.saveFontFamily(fontFamilyName)
             }
         }
     }

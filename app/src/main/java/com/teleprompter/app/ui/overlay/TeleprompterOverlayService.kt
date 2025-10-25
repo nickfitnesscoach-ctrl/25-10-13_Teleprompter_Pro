@@ -31,6 +31,7 @@ import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.graphics.Typeface
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -596,10 +597,14 @@ class TeleprompterOverlayService : LifecycleService() {
         val textView = scriptTextView ?: return
         val scroll = scrollView ?: return
 
-        // Load saved text size
+        // Load saved text size and font family
         lifecycleScope.launch {
             currentTextSize = overlayPreferences.getTextSize()
             textView.textSize = currentTextSize
+
+            // Apply saved font family
+            val fontFamily = overlayPreferences.getFontFamily()
+            applyFontFamily(fontFamily)
         }
 
         // Initialize ScaleGestureDetector with improved smoothness
@@ -723,6 +728,22 @@ class TeleprompterOverlayService : LifecycleService() {
             else -> Gravity.START or Gravity.TOP
         }
         textView.gravity = gravity
+    }
+
+    /**
+     * Apply font family to TextView
+     */
+    private fun applyFontFamily(fontFamilyName: String) {
+        val textView = scriptTextView ?: return
+        val typeface = when (fontFamilyName.lowercase()) {
+            "serif" -> Typeface.SERIF
+            "sans-serif" -> Typeface.SANS_SERIF
+            "monospace" -> Typeface.MONOSPACE
+            "cursive" -> Typeface.create("cursive", Typeface.NORMAL)
+            else -> Typeface.DEFAULT
+        }
+        textView.typeface = typeface
+        Log.d("TeleprompterService", "Applied font family: $fontFamilyName")
     }
 
     /**

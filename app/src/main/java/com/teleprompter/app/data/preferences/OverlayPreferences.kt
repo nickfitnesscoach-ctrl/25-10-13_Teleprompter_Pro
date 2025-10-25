@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -26,6 +27,7 @@ class OverlayPreferences(private val context: Context) {
         private val TEXT_SIZE = floatPreferencesKey("text_size")
         private val TEXT_ALIGNMENT = intPreferencesKey("text_alignment")
         private val OVERLAY_OPACITY = intPreferencesKey("overlay_opacity")
+        private val TEXT_FONT_FAMILY = stringPreferencesKey("text_font_family")
 
         // Default position (center-ish)
         const val DEFAULT_X = 0
@@ -35,6 +37,7 @@ class OverlayPreferences(private val context: Context) {
         const val DEFAULT_TEXT_SIZE = 28f // Default text size in sp
         const val DEFAULT_TEXT_ALIGNMENT = 0 // 0 = start, 1 = center, 2 = end
         const val DEFAULT_OPACITY = 100 // 0-100, where 100 is fully opaque
+        const val DEFAULT_FONT_FAMILY = "default" // "default", "serif", "sans-serif", "monospace", "cursive"
     }
 
     /**
@@ -232,5 +235,27 @@ class OverlayPreferences(private val context: Context) {
         }
 
         return opacity
+    }
+
+    /**
+     * Save text font family
+     */
+    suspend fun saveFontFamily(fontFamily: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TEXT_FONT_FAMILY] = fontFamily
+        }
+    }
+
+    /**
+     * Get text font family synchronously (for initial load)
+     */
+    suspend fun getFontFamily(): String {
+        var fontFamily = DEFAULT_FONT_FAMILY
+
+        context.dataStore.edit { preferences ->
+            fontFamily = preferences[TEXT_FONT_FAMILY] ?: DEFAULT_FONT_FAMILY
+        }
+
+        return fontFamily
     }
 }
