@@ -86,6 +86,8 @@ class TeleprompterOverlayService : LifecycleService() {
     // Overlay opacity
     private var currentOpacity = 100 // 0-100, where 100 is fully opaque
     private var isOpacityPanelVisible = false
+    private val opacityPanelHandler = Handler(Looper.getMainLooper())
+    private var opacityPanelHideRunnable: Runnable? = null
 
     // Scroll animation
     private var scrollAnimator: ValueAnimator? = null
@@ -563,6 +565,7 @@ class TeleprompterOverlayService : LifecycleService() {
     @SuppressLint("ClickableViewAccessibility")
     private fun setupTextSizeGesture() {
         val textView = scriptTextView ?: return
+        val scroll = scrollView ?: return
 
         // Load saved text size
         lifecycleScope.launch {
@@ -641,52 +644,21 @@ class TeleprompterOverlayService : LifecycleService() {
                 }
             })
 
-        // Set touch listener on TextView with multi-touch support
-        textView.setOnTouchListener { view, event ->
-            // Always let ScaleGestureDetector process the event
+        // Set touch listener on SCROLLVIEW instead of TextView
+        // This ensures pinch gestures are captured before ScrollView intercepts them
+        scroll.setOnTouchListener { _, event ->
+            // Let ScaleGestureDetector handle the event first
             scaleGestureDetector.onTouchEvent(event)
 
             val pointerCount = event.pointerCount
 
-            // Handle multi-touch (pinch-to-zoom) vs single touch (scroll)
-            when (event.action and MotionEvent.ACTION_MASK) {
-                MotionEvent.ACTION_POINTER_DOWN,
-                MotionEvent.ACTION_POINTER_UP -> {
-                    // Multi-touch gesture - disable parent scrolling for pinch-to-zoom
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
-                }
-                MotionEvent.ACTION_DOWN -> {
-                    // Single touch down
-                    if (!isScrolling) {
-                        // Not scrolling - allow parent ScrollView to handle this
-                        view.parent?.requestDisallowInterceptTouchEvent(false)
-                    } else {
-                        // Currently auto-scrolling - block manual scroll
-                        view.parent?.requestDisallowInterceptTouchEvent(true)
-                    }
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    if (pointerCount >= 2) {
-                        // Multi-touch move - pinch gesture
-                        view.parent?.requestDisallowInterceptTouchEvent(true)
-                    } else if (!isScrolling) {
-                        // Single finger move while paused - allow scroll
-                        view.parent?.requestDisallowInterceptTouchEvent(false)
-                    }
-                }
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL -> {
-                    // Release on gesture end
-                    view.parent?.requestDisallowInterceptTouchEvent(false)
-                }
-            }
-
-            // Only consume event if it's a multi-touch gesture (pinch-to-zoom)
-            // Let ScrollView handle single touch when paused
-            if (pointerCount >= 2 || isScrolling) {
-                true // Consume the event
-            } else {
-                false // Let parent ScrollView handle single-finger scroll
+            // Block manual scrolling when auto-scrolling is active
+            // Allow pinch-to-zoom always (2+ fingers)
+            // Allow manual scroll only when paused (1 finger + not scrolling)
+            when {
+                pointerCount >= 2 -> true // Always allow pinch-to-zoom
+                isScrolling -> true // Block manual scroll during auto-scroll
+                else -> false // Allow manual scroll when paused
             }
         }
 
@@ -759,7 +731,8 @@ class TeleprompterOverlayService : LifecycleService() {
             }
 
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
-                // Not needed
+                // Cancel auto-hide when user starts touching
+                opacityPanelHideRunnable?.let { opacityPanelHandler.removeCallbacks(it) }
             }
 
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
@@ -767,33 +740,57 @@ class TeleprompterOverlayService : LifecycleService() {
                 lifecycleScope.launch {
                     overlayPreferences.saveOverlayOpacity(currentOpacity)
                 }
+
+                // Schedule auto-hide after 1 second
+                scheduleOpacityPanelHide()
             }
         })
     }
 
     /**
-     * Apply current opacity to overlay with different alpha for background and text
-     * 100 = fully opaque black background with bright white text
-     * 0 = nearly transparent background with slightly visible text
+     * Schedule opacity panel to auto-hide after 1 second
+     */
+    private fun scheduleOpacityPanelHide() {
+        // Cancel any existing scheduled hide
+        opacityPanelHideRunnable?.let { opacityPanelHandler.removeCallbacks(it) }
+
+        // Schedule new hide
+        opacityPanelHideRunnable = Runnable {
+            val opacitySliderPanel = overlayView?.findViewById<View>(R.id.opacitySliderPanel)
+            opacitySliderPanel?.visibility = View.GONE
+            isOpacityPanelVisible = false
+        }
+
+        opacityPanelHandler.postDelayed(opacityPanelHideRunnable!!, 1000)
+    }
+
+    /**
+     * Apply current opacity to overlay with text being 30% less transparent
+     * Example: Overlay 50% -> Text 80%, Overlay 40% -> Text 70%
+     * Uses background color alpha instead of view alpha to avoid affecting children
      */
     private fun applyOverlayOpacity() {
         val view = overlayView ?: return
         val textView = scriptTextView ?: return
 
-        // Background opacity: 100 -> 1.0 (solid black), 0 -> 0.1 (almost invisible)
-        // Using quadratic curve for smoother transition: makes middle range more visible
-        val backgroundAlpha = 0.1f + (currentOpacity / 100f) * 0.9f
+        // Overlay opacity: same as slider value (0-100 mapped to 0-255)
+        val overlayAlphaInt = (currentOpacity * 2.55f).toInt()
 
-        // Text opacity: 100 -> 1.0 (bright white), 0 -> 0.4 (still readable)
-        // Text stays more visible than background
-        val textAlpha = 0.4f + (currentOpacity / 100f) * 0.6f
+        // Text opacity: 30% less transparent (add 30 to percentage, then convert to 0-255)
+        val textOpacity = (currentOpacity + 30).coerceAtMost(100)
+        val textAlphaInt = (textOpacity * 2.55f).toInt()
 
-        // Apply to background panels
-        view.findViewById<View>(R.id.scriptScrollView)?.alpha = backgroundAlpha
-        view.findViewById<View>(R.id.controlButtons)?.alpha = backgroundAlpha
+        // Apply to background panels by changing background color with alpha
+        // Format: #AARRGGBB where AA is alpha (00-FF)
+        val overlayColor = android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0) // Black with alpha
+        val controlColor = android.graphics.Color.argb(overlayAlphaInt, 0, 0, 0) // Black with alpha
 
-        // Apply to text separately to keep it more visible
-        textView.alpha = textAlpha
+        view.findViewById<View>(R.id.scriptScrollView)?.setBackgroundColor(overlayColor)
+        view.findViewById<View>(R.id.controlButtons)?.setBackgroundColor(controlColor)
+
+        // Apply to text using textColor with alpha
+        val textColor = android.graphics.Color.argb(textAlphaInt, 255, 255, 255) // White with alpha
+        textView.setTextColor(textColor)
     }
 
     /**
@@ -1333,6 +1330,10 @@ class TeleprompterOverlayService : LifecycleService() {
         // Clear speed overlay timer
         speedOverlayRunnable?.let { speedOverlayHandler.removeCallbacks(it) }
         speedOverlayHandler.removeCallbacksAndMessages(null)
+
+        // Clear opacity panel timer
+        opacityPanelHideRunnable?.let { opacityPanelHandler.removeCallbacks(it) }
+        opacityPanelHandler.removeCallbacksAndMessages(null)
 
         // Remove overlay
         overlayView?.let { view ->
