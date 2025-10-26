@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // Top-level extension property for singleton DataStore
@@ -110,56 +111,42 @@ class OverlayPreferences(private val context: Context) {
      * Get position synchronously (for initial load)
      */
     suspend fun getPosition(): Pair<Int, Int> {
-        var x = DEFAULT_X
-        var y = DEFAULT_Y
-
-        context.dataStore.edit { preferences ->
-            x = preferences[OVERLAY_X] ?: DEFAULT_X
-            y = preferences[OVERLAY_Y] ?: DEFAULT_Y
+        return context.dataStore.data.first().let { preferences ->
+            Pair(
+                preferences[OVERLAY_X] ?: DEFAULT_X,
+                preferences[OVERLAY_Y] ?: DEFAULT_Y
+            )
         }
-
-        return Pair(x, y)
     }
 
     /**
      * Get width synchronously (for initial load)
      */
     suspend fun getWidth(): Int {
-        var width = DEFAULT_WIDTH
-
-        context.dataStore.edit { preferences ->
-            width = preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
+        return context.dataStore.data.first().let { preferences ->
+            preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
         }
-
-        return width
     }
 
     /**
      * Get height synchronously (for initial load)
      */
     suspend fun getHeight(): Int {
-        var height = DEFAULT_HEIGHT
-
-        context.dataStore.edit { preferences ->
-            height = preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+        return context.dataStore.data.first().let { preferences ->
+            preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
         }
-
-        return height
     }
 
     /**
      * Get size synchronously (for initial load)
      */
     suspend fun getSize(): Pair<Int, Int> {
-        var width = DEFAULT_WIDTH
-        var height = DEFAULT_HEIGHT
-
-        context.dataStore.edit { preferences ->
-            width = preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH
-            height = preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+        return context.dataStore.data.first().let { preferences ->
+            Pair(
+                preferences[OVERLAY_WIDTH] ?: DEFAULT_WIDTH,
+                preferences[OVERLAY_HEIGHT] ?: DEFAULT_HEIGHT
+            )
         }
-
-        return Pair(width, height)
     }
 
     /**
@@ -184,13 +171,9 @@ class OverlayPreferences(private val context: Context) {
      * Get text size synchronously (for initial load)
      */
     suspend fun getTextSize(): Float {
-        var textSize = DEFAULT_TEXT_SIZE
-
-        context.dataStore.edit { preferences ->
-            textSize = preferences[TEXT_SIZE] ?: DEFAULT_TEXT_SIZE
+        return context.dataStore.data.first().let { preferences ->
+            preferences[TEXT_SIZE] ?: DEFAULT_TEXT_SIZE
         }
-
-        return textSize
     }
 
     /**
@@ -206,13 +189,9 @@ class OverlayPreferences(private val context: Context) {
      * Get text alignment synchronously (for initial load)
      */
     suspend fun getTextAlignment(): Int {
-        var alignment = DEFAULT_TEXT_ALIGNMENT
-
-        context.dataStore.edit { preferences ->
-            alignment = preferences[TEXT_ALIGNMENT] ?: DEFAULT_TEXT_ALIGNMENT
+        return context.dataStore.data.first().let { preferences ->
+            preferences[TEXT_ALIGNMENT] ?: DEFAULT_TEXT_ALIGNMENT
         }
-
-        return alignment
     }
 
     /**
@@ -228,13 +207,9 @@ class OverlayPreferences(private val context: Context) {
      * Get overlay opacity synchronously (for initial load)
      */
     suspend fun getOverlayOpacity(): Int {
-        var opacity = DEFAULT_OPACITY
-
-        context.dataStore.edit { preferences ->
-            opacity = preferences[OVERLAY_OPACITY] ?: DEFAULT_OPACITY
+        return context.dataStore.data.first().let { preferences ->
+            preferences[OVERLAY_OPACITY] ?: DEFAULT_OPACITY
         }
-
-        return opacity
     }
 
     /**
@@ -250,13 +225,9 @@ class OverlayPreferences(private val context: Context) {
      * Get text font family synchronously (for initial load)
      */
     suspend fun getFontFamily(): String {
-        var fontFamily = DEFAULT_FONT_FAMILY
-
-        context.dataStore.edit { preferences ->
-            fontFamily = preferences[TEXT_FONT_FAMILY] ?: DEFAULT_FONT_FAMILY
+        return context.dataStore.data.first().let { preferences ->
+            preferences[TEXT_FONT_FAMILY] ?: DEFAULT_FONT_FAMILY
         }
-
-        return fontFamily
     }
 
     /**

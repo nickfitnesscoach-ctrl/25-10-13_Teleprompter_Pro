@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Teleprompter Flow</string>
+    <string name="overlay_permission_required">Требуется разрешение на оверлей</string>
+    <string name="grant_permission">Предоставить разрешение</string>
+    <string name="no_scripts">Пока нет скриптов. Нажмите +, чтобы создать.</string>
+    <string name="show_overlay">Показать оверлей</string>
+    <string name="edit">Редактировать</string>
+    <string name="delete">Удалить</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="new_script">Новый скрипт</string>
+    <string name="edit_script">Редактировать скрипт</string>
+    <string name="script_title">Название скрипта</string>
+    <string name="script_content">Содержимое скрипта</string>
+    <string name="teleprompter_active">Телесуфлёр активен</string>
+    <string name="tap_to_return">Нажмите, чтобы вернуться в приложение</string>
+    <string name="speed_format">Скорость: %d</string>
+
+    <!-- Content Descriptions for Accessibility -->
+    <string name="content_desc_slower">Уменьшить скорость прокрутки</string>
+    <string name="content_desc_faster">Увеличить скорость прокрутки</string>
+    <string name="content_desc_play_pause">Воспроизвести или приостановить прокрутку</string>
+    <string name="content_desc_settings">Открыть настройки</string>
+    <string name="content_desc_drag">Перетащить для перемещения оверлея</string>
+    <string name="content_desc_resize">Перетащить для изменения высоты оверлея</string>
+    <string name="content_desc_minimize">Закрыть оверлей телесуфлёра</string>
+
+    <!-- Default Values -->
+    <string name="default_speed_indicator">Скорость: 50</string>
+    <string name="default_teleprompter_text">Здесь появится текст вашего телесуфлёра...</string>
+
+    <!-- Notification -->
+    <string name="notification_title">TelePrompt One Pro</string>
+    <string name="notification_text">Суфлёр активен поверх других приложений</string>
+</resources>

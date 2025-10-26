@@ -54,10 +54,9 @@ import com.teleprompter.app.ui.overlay.TeleprompterOverlayService
 import com.teleprompter.app.ui.theme.TelePrompterTheme
 import com.teleprompter.app.utils.Constants
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.runtime.collectAsState
 import kotlin.math.ceil
 
 /**
@@ -68,6 +67,11 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var permissionsManager: PermissionsManager
     private lateinit var database: AppDatabase
+
+    companion object {
+        // Swipe to dismiss configuration
+        private const val SWIPE_DISMISS_THRESHOLD = 0.7f // Require 70% swipe to delete
+    }
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -82,12 +86,25 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install splash screen BEFORE super.onCreate and set exit duration to 0
+        // Install custom splash screen with zoom + fade animation
         installSplashScreen().apply {
             setKeepOnScreenCondition { false }
             setOnExitAnimationListener { splashScreenView ->
-                // Remove splash screen immediately without animation
-                splashScreenView.remove()
+                try {
+                    // Cool zoom + fade animation
+                    splashScreenView.iconView.animate()
+                        .scaleX(1.2f)
+                        .scaleY(1.2f)
+                        .alpha(0f)
+                        .setDuration(300)
+                        .withEndAction {
+                            splashScreenView.remove()
+                        }
+                        .start()
+                } catch (e: Exception) {
+                    // If animation fails, just remove splash screen
+                    splashScreenView.remove()
+                }
             }
         }
 
@@ -95,8 +112,18 @@ class MainActivity : ComponentActivity() {
 
         // Apply zoom-in animation when returning from overlay (reverse of minimize)
         if (intent.hasExtra("FROM_OVERLAY")) {
-            @Suppress("DEPRECATION")
-            overridePendingTransition(R.anim.zoom_in_reverse, R.anim.zoom_out_reverse)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                // API 34+ uses overrideActivityTransition
+                overrideActivityTransition(
+                    OVERRIDE_TRANSITION_OPEN,
+                    R.anim.zoom_in_reverse,
+                    R.anim.zoom_out_reverse
+                )
+            } else {
+                // API 33 and below uses overridePendingTransition
+                @Suppress("DEPRECATION")
+                overridePendingTransition(R.anim.zoom_in_reverse, R.anim.zoom_out_reverse)
+            }
         }
 
         permissionsManager = PermissionsManager(this)
@@ -202,26 +229,20 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun MainScreen() {
-        val allScripts = remember { mutableStateOf<List<Script>>(emptyList()) }
+        // Collect scripts from database using collectAsState for lifecycle-aware collection
+        val allScripts by database.scriptDao().getAllScripts()
+            .collectAsState(initial = emptyList())
+
         val searchQuery = remember { mutableStateOf("") }
         val showMenu = remember { mutableStateOf(false) }
         val focusManager = LocalFocusManager.current
 
-        // Collect scripts from database
-        LaunchedEffect(Unit) {
-            database.scriptDao().getAllScripts()
-                .flowOn(Dispatchers.IO)
-                .collectLatest {
-                    allScripts.value = it
-                }
-        }
-
         // Filter scripts based on search query
-        val filteredScripts = remember(allScripts.value, searchQuery.value) {
+        val filteredScripts = remember(allScripts, searchQuery.value) {
             if (searchQuery.value.isBlank()) {
-                allScripts.value
+                allScripts
             } else {
-                allScripts.value.filter { script ->
+                allScripts.filter { script ->
                     script.title.contains(searchQuery.value, ignoreCase = true) ||
                             script.content.contains(searchQuery.value, ignoreCase = true)
                 }
@@ -389,7 +410,7 @@ class MainActivity : ComponentActivity() {
                 }
             },
             positionalThreshold = { totalDistance ->
-                totalDistance * 0.7f  // Require 70% swipe to delete
+                totalDistance * SWIPE_DISMISS_THRESHOLD
             }
         )
 

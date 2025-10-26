@@ -1,22 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.TelePromptOnePro" parent="android:Theme.Material.Light.NoActionBar">
-        <!-- Customize your theme here -->
 
-        <!-- Use solid white background (not translucent) -->
+    <!-- Main application theme -->
+    <style name="Theme.TelePromptOnePro" parent="android:Theme.Material.Light.NoActionBar">
+
+        <!-- Application background after loading -->
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:windowIsTranslucent">false</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowActionBar">false</item>
 
-        <!-- This is the key - show content immediately without waiting for preview -->
+        <!-- No delay in displaying the interface -->
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowContentOverlay">@null</item>
 
-        <!-- Disable splash screen animation on Android 12+ with gray background -->
-        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@null</item>
-        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
-        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
-        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@color/splash_background</item>
+        <!-- Splash Screen with gradient only -->
+        <!-- Transparent icon -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_transparent_1dp</item>
+        <!-- Gradient background -->
+        <item name="android:windowSplashScreenBackground">@drawable/splash_background_gradient</item>
+        <!-- Animation duration (0.3 sec) -->
+        <item name="android:windowSplashScreenAnimationDuration">300</item>
+        <!-- Transparent background under icon -->
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+
     </style>
+
 </resources>

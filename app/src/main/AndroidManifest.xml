@@ -23,7 +23,6 @@
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"
-            android:launchMode="singleTask"
             android:theme="@style/Theme.TelePromptOnePro">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

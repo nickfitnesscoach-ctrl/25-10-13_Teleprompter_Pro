@@ -40,7 +40,6 @@ import com.teleprompter.app.data.preferences.OverlayPreferences
 import com.teleprompter.app.ui.main.MainActivity
 import com.teleprompter.app.utils.Constants
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 /**
  * Foreground service for displaying teleprompter overlay
@@ -95,10 +94,15 @@ class TeleprompterOverlayService : LifecycleService() {
     private var isScrolling = false
     private var scrollSpeed = 50 // Speed level: 1 = slowest, 500 = fastest
 
+    // Animation duration bounds (milliseconds)
+    private val MIN_ANIMATION_DURATION = 1000L // 1 second minimum
+    private val MAX_ANIMATION_DURATION = 300000L // 5 minutes maximum
+
     // Speed control with hold functionality
     private val speedChangeHandler = Handler(Looper.getMainLooper())
     private var speedChangeRunnable: Runnable? = null
     private var isHoldingButton = false
+    private var isChangingSpeed = false // Prevent race conditions during speed changes
 
     // UI components
     private var scriptTextView: TextView? = null
@@ -209,13 +213,14 @@ class TeleprompterOverlayService : LifecycleService() {
     /**
      * Get current display rotation
      */
-    @Suppress("DEPRECATION")
     private fun getDisplayRotation(): Int {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val display = windowManager.defaultDisplay
+                // Use display from context for Android R+
                 display?.rotation ?: Surface.ROTATION_0
             } else {
+                // Use deprecated API for older Android versions
+                @Suppress("DEPRECATION")
                 windowManager.defaultDisplay.rotation
             }
         } catch (e: Exception) {
@@ -258,7 +263,9 @@ class TeleprompterOverlayService : LifecycleService() {
             }
 
         } catch (e: Exception) {
-            Toast.makeText(this, "Error showing overlay: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e("TeleprompterService", "Failed to start overlay service", e)
+            // Show error notification with full context
+            showErrorNotification("Failed to start teleprompter: ${e.localizedMessage ?: "Unknown error"}")
             stopSelf()
         }
 
@@ -326,7 +333,13 @@ class TeleprompterOverlayService : LifecycleService() {
      */
     @SuppressLint("InflateParams")
     private fun createOverlay() {
-        if (overlayView != null && overlayView?.parent != null) return
+        // Don't recreate if overlay already exists
+        if (overlayView != null) {
+            Log.d("TeleprompterService", "createOverlay() skipped - overlay already exists")
+            return
+        }
+
+        Log.d("TeleprompterService", "createOverlay() - creating new overlay")
 
         // Inflate layout without parent (null is correct for WindowManager overlays)
         val inflater = LayoutInflater.from(this)
@@ -347,12 +360,34 @@ class TeleprompterOverlayService : LifecycleService() {
         // Create layout params - always use TYPE_APPLICATION_OVERLAY for Android O+
         val type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-        // Load saved position and size synchronously
-        val (savedX, savedY) = runBlocking {
-            overlayPreferences.getPosition()
-        }
-        val (savedWidth, savedHeight) = runBlocking {
-            overlayPreferences.getSize()
+        // Use default values initially, will be updated asynchronously after overlay is created
+        var savedX = OverlayPreferences.DEFAULT_X
+        var savedY = OverlayPreferences.DEFAULT_Y
+        var savedWidth = OverlayPreferences.DEFAULT_WIDTH
+        var savedHeight = OverlayPreferences.DEFAULT_HEIGHT
+
+        // Load saved position and size asynchronously and update overlay
+        lifecycleScope.launch {
+            val (loadedX, loadedY) = overlayPreferences.getPosition()
+            val (loadedWidth, loadedHeight) = overlayPreferences.getSize()
+
+            // Update layout params with loaded values
+            layoutParams?.let { params ->
+                params.x = loadedX
+                params.y = loadedY.coerceAtMost(resources.displayMetrics.heightPixels - params.height)
+                params.width = if (loadedWidth == -1) WindowManager.LayoutParams.MATCH_PARENT else loadedWidth
+                params.height = loadedHeight
+                // Only update if view is attached to window manager
+                overlayView?.let { view ->
+                    if (view.isAttachedToWindow) {
+                        try {
+                            windowManager.updateViewLayout(view, params)
+                        } catch (e: Exception) {
+                            Log.e("TeleprompterService", "Error updating view layout", e)
+                        }
+                    }
+                }
+            }
         }
 
         // Get screen dimensions
@@ -510,14 +545,20 @@ class TeleprompterOverlayService : LifecycleService() {
         }
 
         btnMinimize?.setOnClickListener {
+            Log.d("TeleprompterService", "Close button clicked - returning to MainActivity")
+
             // Return to main activity (script list)
             val intent = Intent(this, com.teleprompter.app.ui.main.MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                action = Intent.ACTION_MAIN
-                addCategory(Intent.CATEGORY_LAUNCHER)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             }
 
-            startActivity(intent)
+            try {
+                startActivity(intent)
+                Log.d("TeleprompterService", "MainActivity started successfully")
+            } catch (e: Exception) {
+                Log.e("TeleprompterService", "Error starting MainActivity", e)
+            }
 
             // Hide overlay and stop service
             overlayView?.let { view ->
@@ -997,6 +1038,7 @@ class TeleprompterOverlayService : LifecycleService() {
             }
 
             val duration = (remainingDistance * 1000 / scrollSpeed).toLong()
+                .coerceIn(MIN_ANIMATION_DURATION, MAX_ANIMATION_DURATION)
 
             Log.d("TeleprompterService", "Scrolling from $currentY to $maxScroll, duration=$duration ms")
 
@@ -1023,6 +1065,7 @@ class TeleprompterOverlayService : LifecycleService() {
      */
     private fun startScrollingWithDistance(scroll: ScrollView, fromY: Int, toY: Int) {
         val duration = ((toY - fromY) * 1000 / scrollSpeed).toLong()
+            .coerceIn(MIN_ANIMATION_DURATION, MAX_ANIMATION_DURATION)
 
         Log.d("TeleprompterService", "Scrolling from $fromY to $toY, duration=$duration ms")
 
@@ -1056,17 +1099,28 @@ class TeleprompterOverlayService : LifecycleService() {
      * Increase scroll speed (make it faster)
      */
     private fun increaseSpeed() {
-        // Higher speed number = faster
-        // Increase by 1 for very smooth increment
-        scrollSpeed = (scrollSpeed + 1).coerceAtMost(500)
-        updateSpeedIndicator()
+        // Prevent race conditions during speed changes
+        if (isChangingSpeed) return
+        isChangingSpeed = true
 
-        // Restart scrolling with new speed if currently scrolling
-        if (isScrolling) {
-            stopScrolling()
-            startScrolling()
-            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
-                ?.setImageResource(android.R.drawable.ic_media_pause)
+        try {
+            // Higher speed number = faster
+            // Increase by 1 for very smooth increment
+            scrollSpeed = (scrollSpeed + 1).coerceAtMost(500)
+            updateSpeedIndicator()
+
+            // Restart scrolling with new speed if currently scrolling
+            if (isScrolling) {
+                stopScrolling()
+                startScrolling()
+                // Update play/pause button icon only if overlayView is still available
+                overlayView?.let { view ->
+                    view.findViewById<ImageButton>(R.id.btnPlayPause)
+                        ?.setImageResource(android.R.drawable.ic_media_pause)
+                }
+            }
+        } finally {
+            isChangingSpeed = false
         }
     }
 
@@ -1074,17 +1128,28 @@ class TeleprompterOverlayService : LifecycleService() {
      * Decrease scroll speed (make it slower)
      */
     private fun decreaseSpeed() {
-        // Lower speed number = slower
-        // Decrease by 1 for very smooth increment
-        scrollSpeed = (scrollSpeed - 1).coerceAtLeast(1)
-        updateSpeedIndicator()
+        // Prevent race conditions during speed changes
+        if (isChangingSpeed) return
+        isChangingSpeed = true
 
-        // Restart scrolling with new speed if currently scrolling
-        if (isScrolling) {
-            stopScrolling()
-            startScrolling()
-            overlayView?.findViewById<ImageButton>(R.id.btnPlayPause)
-                ?.setImageResource(android.R.drawable.ic_media_pause)
+        try {
+            // Lower speed number = slower
+            // Decrease by 1 for very smooth increment
+            scrollSpeed = (scrollSpeed - 1).coerceAtLeast(1)
+            updateSpeedIndicator()
+
+            // Restart scrolling with new speed if currently scrolling
+            if (isScrolling) {
+                stopScrolling()
+                startScrolling()
+                // Update play/pause button icon only if overlayView is still available
+                overlayView?.let { view ->
+                    view.findViewById<ImageButton>(R.id.btnPlayPause)
+                        ?.setImageResource(android.R.drawable.ic_media_pause)
+                }
+            }
+        } finally {
+            isChangingSpeed = false
         }
     }
 
@@ -1330,10 +1395,36 @@ class TeleprompterOverlayService : LifecycleService() {
     }
 
     /**
+     * Show error notification to user
+     */
+    private fun showErrorNotification(message: String) {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = Notification.Builder(this, "teleprompter_overlay")
+            .setContentTitle("Teleprompter Error")
+            .setContentText(message)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(Constants.FOREGROUND_SERVICE_ID + 1, notification)
+    }
+
+    /**
      * Enter Picture-in-Picture mode - minimize to small circular icon
      */
     private fun enterPipMode() {
         if (isPipMode) return
+
+        Log.d("TeleprompterService", "enterPipMode() - entering PIP mode")
 
         isPipMode = true
 
@@ -1350,6 +1441,8 @@ class TeleprompterOverlayService : LifecycleService() {
                 // View already removed, ignore
             }
         }
+        overlayView = null
+        Log.d("TeleprompterService", "enterPipMode() - overlayView set to null")
 
         // Create PIP view
         val inflater = LayoutInflater.from(this)
@@ -1467,6 +1560,8 @@ class TeleprompterOverlayService : LifecycleService() {
      */
     private fun exitPipMode() {
         if (!isPipMode) return
+
+        Log.d("TeleprompterService", "exitPipMode() - exiting PIP mode, overlayView is null: ${overlayView == null}")
 
         isPipMode = false
 

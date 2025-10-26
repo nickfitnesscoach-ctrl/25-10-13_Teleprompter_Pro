@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Screen/Monitor frame -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.9"
+        android:pathData="M40,30 L160,30 Q170,30 170,40 L170,130 Q170,140 160,140 L40,140 Q30,140 30,130 L30,40 Q30,30 40,30 Z"/>
+
+    <!-- Inner screen (dark) -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M45,38 L155,38 Q162,38 162,45 L162,125 Q162,132 155,132 L45,132 Q38,132 38,125 L38,45 Q38,38 45,38 Z"/>
+
+    <!-- Scrolling text lines (stylized) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.8"
+        android:pathData="M50,52 L120,52 Q124,52 124,56 L124,60 Q124,64 120,64 L50,64 Q46,64 46,60 L46,56 Q46,52 50,52 Z"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M50,75 L140,75 Q144,75 144,79 L144,83 Q144,87 140,87 L50,87 Q46,87 46,83 L46,79 Q46,75 50,75 Z"/>
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M50,98 L110,98 Q114,98 114,102 L114,106 Q114,110 110,110 L50,110 Q46,110 46,106 L46,102 Q46,98 50,98 Z"/>
+
+    <!-- Play button indicator (orange) -->
+    <path
+        android:fillColor="#FF6F00"
+        android:pathData="M85,85 L110,100 L85,115 Z"/>
+
+    <!-- Stand/Base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.9"
+        android:pathData="M85,140 L115,140 L120,160 L80,160 Z"/>
+
+</vector>

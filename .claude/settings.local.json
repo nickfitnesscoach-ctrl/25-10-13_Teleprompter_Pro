@@ -11,7 +11,10 @@
       "Bash(dir)",
       "Bash(dir:*)",
       "Bash(rm:*)",
-      "Bash(rmdir:*)"
+      "Bash(rmdir:*)",
+      "Bash(git restore:*)",
+      "mcp__context7__resolve-library-id",
+      "Bash(gradlew assembleDebug:*)"
     ],
     "deny": [],
     "ask": []
