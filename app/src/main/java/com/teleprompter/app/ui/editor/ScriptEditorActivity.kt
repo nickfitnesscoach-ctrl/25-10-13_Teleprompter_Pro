@@ -113,33 +113,48 @@ class ScriptEditorActivity : ComponentActivity() {
         Scaffold(
             topBar = {
                 // Title input in top bar (same width as other cards)
+                var isTitleFocused by remember { mutableStateOf(false) }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .border(
+                            width = 1.dp,
+                            color = if (isTitleFocused) Color(0xFFFF6F00) else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    OutlinedTextField(
+                    BasicTextField(
                         value = title,
                         onValueChange = { title = it },
-                        placeholder = {
-                            Text(
-                                "Script Title",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(16.dp)
+                            .onFocusChanged { focusState ->
+                                isTitleFocused = focusState.isFocused
+                            },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF6F00), // Оранжевая рамка при фокусе
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        )
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (title.isEmpty()) {
+                                    Text(
+                                        "Script Title",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
                     )
                 }
             },
