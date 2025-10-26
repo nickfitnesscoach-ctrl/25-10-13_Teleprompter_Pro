@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -111,35 +112,30 @@ class ScriptEditorActivity : ComponentActivity() {
 
         Scaffold(
             topBar = {
-                // Title input in top bar (compact, centered)
-                Box(
+                // Title input in top bar (same width as other cards)
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(0.7f), // 70% ширины
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            placeholder = { Text("Название скрипта") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
+                    OutlinedTextField(
+                        value = title,
+                        onValueChange = { title = it },
+                        placeholder = { Text("Название скрипта") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF6F00), // Оранжевая рамка при фокусе
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
                         )
-                    }
+                    )
                 }
             },
             containerColor = MaterialTheme.colorScheme.background
@@ -193,13 +189,15 @@ class ScriptEditorActivity : ComponentActivity() {
                                 )
                             }
 
-                            // Text field with AnnotatedString support
+                            // Text field with AnnotatedString support and focus indicator
+                            var isFocused by remember { mutableStateOf(false) }
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.outline,
+                                        width = 2.dp,
+                                        color = if (isFocused) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline, // Оранжевая рамка при фокусе
                                         shape = RoundedCornerShape(4.dp)
                                     )
                                     .padding(12.dp)
@@ -216,7 +214,11 @@ class ScriptEditorActivity : ComponentActivity() {
                                             content = preserveStyles(content, newValue)
                                         }
                                     },
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .onFocusChanged { focusState ->
+                                            isFocused = focusState.isFocused
+                                        },
                                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                                         color = MaterialTheme.colorScheme.onSurface
                                     ),
@@ -224,7 +226,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                         Box {
                                             if (content.text.isEmpty()) {
                                                 Text(
-                                                    "Script Content",
+                                                    "Поле для текста",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                                 )
