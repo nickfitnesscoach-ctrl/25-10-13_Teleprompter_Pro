@@ -111,16 +111,24 @@ class ScriptEditorActivity : ComponentActivity() {
 
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = if (scriptId == null) "New Script" else "Edit Script",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    navigationIcon = {
+                // Title input in top bar with back button
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        // Back button
                         IconButton(onClick = { finish() }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
@@ -128,11 +136,23 @@ class ScriptEditorActivity : ComponentActivity() {
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
+
+                        // Title input
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            placeholder = { Text("Название скрипта") },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            )
+                        )
+                    }
+                }
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { padding ->
@@ -155,30 +175,6 @@ class ScriptEditorActivity : ComponentActivity() {
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Title input card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            label = { Text("Script Title") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            )
-                        )
-                    }
-
                     // Content input card with formatting toolbar
                     Card(
                         modifier = Modifier
