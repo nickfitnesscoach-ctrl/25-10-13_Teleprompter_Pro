@@ -290,7 +290,11 @@ class ScriptEditorActivity : ComponentActivity() {
                                         contentColor = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Text("B", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                    Text(
+                                        "B",
+                                        fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
                                 }
                             }
 
@@ -310,7 +314,12 @@ class ScriptEditorActivity : ComponentActivity() {
                                         contentColor = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Text("I", fontStyle = FontStyle.Italic, fontSize = 18.sp)
+                                    Text(
+                                        "I",
+                                        fontWeight = if (isItalic) FontWeight.ExtraBold else FontWeight.Normal,
+                                        fontStyle = FontStyle.Italic,
+                                        fontSize = 18.sp
+                                    )
                                 }
                             }
 
@@ -330,7 +339,12 @@ class ScriptEditorActivity : ComponentActivity() {
                                         contentColor = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
                                     )
                                 ) {
-                                    Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
+                                    Text(
+                                        "U",
+                                        fontWeight = if (isUnderline) FontWeight.ExtraBold else FontWeight.Normal,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontSize = 18.sp
+                                    )
                                 }
                             }
 
