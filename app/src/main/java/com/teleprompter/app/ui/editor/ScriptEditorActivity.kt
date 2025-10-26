@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +37,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.teleprompter.app.R
 import com.teleprompter.app.data.db.AppDatabase
 import com.teleprompter.app.data.models.Script
 import com.teleprompter.app.data.preferences.OverlayPreferences
@@ -247,12 +245,12 @@ class ScriptEditorActivity : ComponentActivity() {
                                     value = content,
                                     onValueChange = { newValue ->
                                         // Check if only selection changed (cursor moved)
-                                        if (newValue.text == content.text) {
+                                        content = if (newValue.text == content.text) {
                                             // Only selection changed - preserve annotatedString
-                                            content = newValue.copy(annotatedString = content.annotatedString)
+                                            newValue.copy(annotatedString = content.annotatedString)
                                         } else {
                                             // Text changed - preserve styles
-                                            content = preserveStyles(content, newValue)
+                                            preserveStyles(content, newValue)
                                         }
                                     },
                                     modifier = Modifier
