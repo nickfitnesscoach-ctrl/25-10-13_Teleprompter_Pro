@@ -303,9 +303,8 @@ class ScriptEditorActivity : ComponentActivity() {
                     ) {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                         ) {
                             // Check if styles are active at current selection
@@ -323,111 +322,105 @@ class ScriptEditorActivity : ComponentActivity() {
                             val isUnderline = currentStyles.any { it.item.textDecoration == TextDecoration.Underline }
 
                             // Bold button
-                            Card(
+                            Box(
                                 modifier = Modifier
-                                    .padding(horizontal = 2.dp)
+                                    .size(40.dp)
                                     .border(
-                                        width = if (isBold) 2.dp else 0.dp,
-                                        color = if (isBold) Color(0xFFFF6F00) else Color.Transparent,
+                                        width = if (isBold) 2.dp else 1.dp,
+                                        color = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
-                                    ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.Transparent
-                                ),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                TextButton(
-                                    onClick = {
+                                    )
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                    ) {
                                         content = applyFormatting(content, "bold")
                                     },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    ),
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        "B",
-                                        fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Text(
+                                    "B",
+                                    fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                )
                             }
 
                             // Italic button
-                            Card(
+                            Box(
                                 modifier = Modifier
-                                    .padding(horizontal = 2.dp)
+                                    .size(40.dp)
                                     .border(
-                                        width = if (isItalic) 2.dp else 0.dp,
-                                        color = if (isItalic) Color(0xFFFF6F00) else Color.Transparent,
+                                        width = if (isItalic) 2.dp else 1.dp,
+                                        color = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
-                                    ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.Transparent
-                                ),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                TextButton(
-                                    onClick = {
+                                    )
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                    ) {
                                         content = applyFormatting(content, "italic")
                                     },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    ),
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        "I",
-                                        fontWeight = if (isItalic) FontWeight.ExtraBold else FontWeight.Normal,
-                                        fontStyle = FontStyle.Italic,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Text(
+                                    "I",
+                                    fontWeight = if (isItalic) FontWeight.ExtraBold else FontWeight.Normal,
+                                    fontStyle = FontStyle.Italic,
+                                    fontSize = 14.sp,
+                                    color = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                )
                             }
 
                             // Underline button
-                            Card(
+                            Box(
                                 modifier = Modifier
-                                    .padding(horizontal = 2.dp)
+                                    .size(40.dp)
                                     .border(
-                                        width = if (isUnderline) 2.dp else 0.dp,
-                                        color = if (isUnderline) Color(0xFFFF6F00) else Color.Transparent,
+                                        width = if (isUnderline) 2.dp else 1.dp,
+                                        color = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
-                                    ),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.Transparent
-                                ),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                TextButton(
-                                    onClick = {
+                                    )
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                    ) {
                                         content = applyFormatting(content, "underline")
                                     },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    ),
-                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        "U",
-                                        fontWeight = if (isUnderline) FontWeight.ExtraBold else FontWeight.Normal,
-                                        textDecoration = TextDecoration.Underline,
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Text(
+                                    "U",
+                                    fontWeight = if (isUnderline) FontWeight.ExtraBold else FontWeight.Normal,
+                                    textDecoration = TextDecoration.Underline,
+                                    fontSize = 14.sp,
+                                    color = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                )
                             }
 
                             // Font selector button
-                            TextButton(
-                                onClick = {
-                                    showFontSelector = true
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                ),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    )
+                                    .clickable(
+                                        indication = null,
+                                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                    ) {
+                                        showFontSelector = true
+                                    },
+                                contentAlignment = androidx.compose.ui.Alignment.Center
                             ) {
-                                Text("T", fontSize = 14.sp)
+                                Text(
+                                    "A",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     }
