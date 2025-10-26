@@ -5,7 +5,6 @@ import android.text.Html
 import android.text.Spanned
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
-import java.util.regex.Pattern
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -788,9 +787,7 @@ class ScriptEditorActivity : ComponentActivity() {
             return text
         }
 
-        // Build a map of position -> active styles
-        data class StyleChange(val position: Int, val isBold: Boolean, val isItalic: Boolean, val isUnderline: Boolean)
-
+        // Build list of style change positions
         val styleChanges = mutableListOf<Int>()
         relevantSpans.forEach { span ->
             styleChanges.add(span.start)
@@ -850,13 +847,8 @@ class ScriptEditorActivity : ComponentActivity() {
         }
 
 
-        // Parse HTML to Spanned
-        val spanned: Spanned = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
-        } else {
-            @Suppress("DEPRECATION")
-            Html.fromHtml(html)
-        }
+        // Parse HTML to Spanned (using modern API as minSdk >= 26)
+        val spanned: Spanned = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
 
         // Calculate positions for font-family spans after HTML parsing
         val text = spanned.toString()
