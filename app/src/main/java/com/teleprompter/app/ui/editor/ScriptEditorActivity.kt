@@ -111,40 +111,28 @@ class ScriptEditorActivity : ComponentActivity() {
 
         Scaffold(
             topBar = {
-                // Title input in top bar with back button
-                Card(
+                // Title input in top bar (compact, centered)
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    Card(
+                        modifier = Modifier.fillMaxWidth(0.7f), // 70% ширины
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        // Back button
-                        IconButton(onClick = { finish() }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        // Title input
                         OutlinedTextField(
                             value = title,
                             onValueChange = { title = it },
                             placeholder = { Text("Название скрипта") },
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 8.dp),
+                                .fillMaxWidth()
+                                .padding(12.dp),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -191,62 +179,6 @@ class ScriptEditorActivity : ComponentActivity() {
                                 .fillMaxSize()
                                 .padding(16.dp)
                         ) {
-                            // Formatting toolbar
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // Bold button
-                                TextButton(
-                                    onClick = {
-                                        content = applyFormatting(content, "bold")
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("B", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                }
-
-                                // Italic button
-                                TextButton(
-                                    onClick = {
-                                        content = applyFormatting(content, "italic")
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("I", fontStyle = FontStyle.Italic, fontSize = 18.sp)
-                                }
-
-                                // Underline button
-                                TextButton(
-                                    onClick = {
-                                        content = applyFormatting(content, "underline")
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
-                                }
-
-                                // Font selector button
-                                TextButton(
-                                    onClick = {
-                                        showFontSelector = true
-                                    },
-                                    colors = ButtonDefaults.textButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text("T", fontSize = 18.sp)
-                                }
-                            }
-
                             // Font selector dialog
                             if (showFontSelector) {
                                 FontSelectorDialog(
@@ -260,10 +192,6 @@ class ScriptEditorActivity : ComponentActivity() {
                                     }
                                 )
                             }
-
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-
-                            Spacer(modifier = Modifier.height(8.dp))
 
                             // Text field with AnnotatedString support
                             Box(
@@ -305,6 +233,72 @@ class ScriptEditorActivity : ComponentActivity() {
                                         }
                                     }
                                 )
+                            }
+                        }
+                    }
+
+                    // Formatting toolbar (compact card at bottom)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            // Bold button
+                            TextButton(
+                                onClick = {
+                                    content = applyFormatting(content, "bold")
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("B", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            }
+
+                            // Italic button
+                            TextButton(
+                                onClick = {
+                                    content = applyFormatting(content, "italic")
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("I", fontStyle = FontStyle.Italic, fontSize = 18.sp)
+                            }
+
+                            // Underline button
+                            TextButton(
+                                onClick = {
+                                    content = applyFormatting(content, "underline")
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
+                            }
+
+                            // Font selector button
+                            TextButton(
+                                onClick = {
+                                    showFontSelector = true
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Text("T", fontSize = 18.sp)
                             }
                         }
                     }
