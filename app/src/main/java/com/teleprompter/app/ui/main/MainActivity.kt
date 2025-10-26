@@ -377,18 +377,24 @@ class MainActivity : ComponentActivity() {
                 } else {
                     false
                 }
+            },
+            positionalThreshold = { totalDistance ->
+                totalDistance * 0.7f  // Require 70% swipe to delete
             }
         )
 
         SwipeToDismissBox(
             state = dismissState,
             backgroundContent = {
+                // Show red background immediately when swiping starts
                 val color by animateColorAsState(
-                    if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                         MaterialTheme.colorScheme.error
                     } else {
                         Color.Transparent
-                    }, label = "background"
+                    },
+                    label = "background",
+                    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200)
                 )
                 Box(
                     modifier = Modifier
@@ -397,7 +403,8 @@ class MainActivity : ComponentActivity() {
                         .padding(horizontal = 20.dp),
                     contentAlignment = Alignment.CenterEnd
                 ) {
-                    if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
+                    // Always show "Delete" text when swiping, not just when target is EndToStart
+                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
                         Text(
                             "Delete",
                             color = Color.White,
