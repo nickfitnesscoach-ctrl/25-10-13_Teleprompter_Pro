@@ -126,7 +126,12 @@ class ScriptEditorActivity : ComponentActivity() {
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        placeholder = { Text("Название скрипта") },
+                        placeholder = {
+                            Text(
+                                "Script Title",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
@@ -226,7 +231,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                         Box {
                                             if (content.text.isEmpty()) {
                                                 Text(
-                                                    "Поле для текста",
+                                                    "Script Content",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                                 )
@@ -255,40 +260,78 @@ class ScriptEditorActivity : ComponentActivity() {
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                         ) {
+                            // Check if styles are active at current selection
+                            val selection = content.selection
+                            val currentStyles = if (selection.start < content.annotatedString.length) {
+                                content.annotatedString.spanStyles.filter {
+                                    it.start <= selection.start && it.end >= selection.start
+                                }
+                            } else {
+                                emptyList()
+                            }
+
+                            val isBold = currentStyles.any { it.item.fontWeight == FontWeight.Bold }
+                            val isItalic = currentStyles.any { it.item.fontStyle == FontStyle.Italic }
+                            val isUnderline = currentStyles.any { it.item.textDecoration == TextDecoration.Underline }
+
                             // Bold button
-                            TextButton(
-                                onClick = {
-                                    content = applyFormatting(content, "bold")
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
+                            Card(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isBold) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("B", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                TextButton(
+                                    onClick = {
+                                        content = applyFormatting(content, "bold")
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("B", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                }
                             }
 
                             // Italic button
-                            TextButton(
-                                onClick = {
-                                    content = applyFormatting(content, "italic")
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
+                            Card(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isItalic) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("I", fontStyle = FontStyle.Italic, fontSize = 18.sp)
+                                TextButton(
+                                    onClick = {
+                                        content = applyFormatting(content, "italic")
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("I", fontStyle = FontStyle.Italic, fontSize = 18.sp)
+                                }
                             }
 
                             // Underline button
-                            TextButton(
-                                onClick = {
-                                    content = applyFormatting(content, "underline")
-                                },
-                                colors = ButtonDefaults.textButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
+                            Card(
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isUnderline) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
+                                TextButton(
+                                    onClick = {
+                                        content = applyFormatting(content, "underline")
+                                    },
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text("U", textDecoration = TextDecoration.Underline, fontSize = 18.sp)
+                                }
                             }
 
                             // Font selector button
