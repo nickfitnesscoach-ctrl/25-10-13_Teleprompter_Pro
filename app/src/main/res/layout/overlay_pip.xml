@@ -8,14 +8,13 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- Circular background with app icon -->
+    <!-- App icon (standard launcher icon) -->
     <ImageView
         android:id="@+id/pipIcon"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:src="@mipmap/ic_launcher"
-        android:scaleType="centerCrop"
-        android:background="@drawable/pip_background"
+        android:scaleType="fitCenter"
         android:elevation="8dp"
         android:contentDescription="Teleprompter PIP" />
 

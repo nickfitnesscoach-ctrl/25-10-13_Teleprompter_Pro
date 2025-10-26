@@ -2,9 +2,21 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.TelePromptOnePro" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Customize your theme here -->
-        <!-- Disable splash screen animation on Android 12+ -->
+
+        <!-- Use solid white background (not translucent) -->
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+
+        <!-- This is the key - show content immediately without waiting for preview -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+
+        <!-- Disable splash screen animation on Android 12+ with gray background -->
         <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@null</item>
-        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@android:color/white</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
         <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">0</item>
+        <item name="android:windowSplashScreenIconBackgroundColor" tools:targetApi="31">@color/splash_background</item>
     </style>
 </resources>

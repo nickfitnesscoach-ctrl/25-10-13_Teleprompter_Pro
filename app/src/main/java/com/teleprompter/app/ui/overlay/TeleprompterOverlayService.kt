@@ -1356,7 +1356,7 @@ class TeleprompterOverlayService : LifecycleService() {
         val view = inflater.inflate(R.layout.overlay_pip, null)
         pipView = view
 
-        // Setup PIP layout params - circular icon (slightly larger than app icons)
+        // Setup PIP layout params - standard app icon size
         val pipSize = (64 * resources.displayMetrics.density).toInt()
         val pipParams = WindowManager.LayoutParams(
             pipSize,

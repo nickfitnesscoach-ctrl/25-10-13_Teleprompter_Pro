@@ -82,10 +82,13 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install splash screen and immediately dismiss it (Android 12+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val splashScreen = installSplashScreen()
-            splashScreen.setKeepOnScreenCondition { false }
+        // Install splash screen BEFORE super.onCreate and set exit duration to 0
+        installSplashScreen().apply {
+            setKeepOnScreenCondition { false }
+            setOnExitAnimationListener { splashScreenView ->
+                // Remove splash screen immediately without animation
+                splashScreenView.remove()
+            }
         }
 
         super.onCreate(savedInstanceState)
