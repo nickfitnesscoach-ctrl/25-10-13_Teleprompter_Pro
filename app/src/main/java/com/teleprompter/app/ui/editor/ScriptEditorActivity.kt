@@ -8,6 +8,7 @@ import android.text.style.UnderlineSpan
 import java.util.regex.Pattern
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -110,61 +111,14 @@ class ScriptEditorActivity : ComponentActivity() {
             isLoading = false
         }
 
-        Scaffold(
-            topBar = {
-                // Title input in top bar (same width as other cards)
-                var isTitleFocused by remember { mutableStateOf(false) }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .border(
-                            width = 1.dp,
-                            color = if (isTitleFocused) Color(0xFFFF6F00) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp)
-                        ),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    BasicTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .onFocusChanged { focusState ->
-                                isTitleFocused = focusState.isFocused
-                            },
-                        singleLine = true,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface
-                        ),
-                        decorationBox = { innerTextField ->
-                            Box {
-                                if (title.isEmpty()) {
-                                    Text(
-                                        "Script Title",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                }
-                                innerTextField()
-                            }
-                        }
-                    )
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
             if (isLoading) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = androidx.compose.ui.Alignment.Center
                 ) {
                     CircularProgressIndicator(
@@ -173,13 +127,92 @@ class ScriptEditorActivity : ComponentActivity() {
                 }
             } else {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    // Content input card with formatting toolbar
+                    // Top bar with back arrow, title input, and save button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        // Back arrow
+                        IconButton(
+                            onClick = { finish() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // Title input with underline
+                        var isTitleFocused by remember { mutableStateOf(false) }
+
+                        BasicTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp)
+                                .onFocusChanged { focusState ->
+                                    isTitleFocused = focusState.isFocused
+                                },
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSurface
+                            ),
+                            decorationBox = { innerTextField ->
+                                Column {
+                                    Box(modifier = Modifier.padding(bottom = 4.dp)) {
+                                        if (title.isEmpty()) {
+                                            Text(
+                                                "Script title",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                    // Underline - orange when focused
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(2.dp)
+                                            .background(
+                                                if (isTitleFocused) Color(0xFFFF6F00)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                            )
+                                    )
+                                }
+                            }
+                        )
+
+                        // Save button
+                        TextButton(
+                            onClick = {
+                                val htmlContent = annotatedStringToHtml(content.annotatedString)
+                                saveScript(title, htmlContent)
+                            },
+                            enabled = title.isNotBlank() && content.text.isNotBlank()
+                        ) {
+                            Text(
+                                "Save",
+                                color = Color(0xFFFF6F00),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // Main content area
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Content input - main text area
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -291,9 +324,15 @@ class ScriptEditorActivity : ComponentActivity() {
 
                             // Bold button
                             Card(
-                                modifier = Modifier.padding(horizontal = 2.dp),
+                                modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .border(
+                                        width = if (isBold) 2.dp else 0.dp,
+                                        color = if (isBold) Color(0xFFFF6F00) else Color.Transparent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isBold) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                    containerColor = Color.Transparent
                                 ),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
@@ -316,9 +355,15 @@ class ScriptEditorActivity : ComponentActivity() {
 
                             // Italic button
                             Card(
-                                modifier = Modifier.padding(horizontal = 2.dp),
+                                modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .border(
+                                        width = if (isItalic) 2.dp else 0.dp,
+                                        color = if (isItalic) Color(0xFFFF6F00) else Color.Transparent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isItalic) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                    containerColor = Color.Transparent
                                 ),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
@@ -342,9 +387,15 @@ class ScriptEditorActivity : ComponentActivity() {
 
                             // Underline button
                             Card(
-                                modifier = Modifier.padding(horizontal = 2.dp),
+                                modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .border(
+                                        width = if (isUnderline) 2.dp else 0.dp,
+                                        color = if (isUnderline) Color(0xFFFF6F00) else Color.Transparent,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isUnderline) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
+                                    containerColor = Color.Transparent
                                 ),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
@@ -380,37 +431,6 @@ class ScriptEditorActivity : ComponentActivity() {
                             }
                         }
                     }
-
-                    // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { finish() },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            )
-                        ) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                val htmlContent = annotatedStringToHtml(content.annotatedString)
-                                saveScript(title, htmlContent)
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = title.isNotBlank() && content.text.isNotBlank(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.White
-                            )
-                        ) {
-                            Text("Save")
-                        }
                     }
                 }
             }

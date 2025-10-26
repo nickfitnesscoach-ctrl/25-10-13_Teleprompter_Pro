@@ -360,10 +360,11 @@ class MainActivity : ComponentActivity() {
         onEdit: () -> Unit,
         onDelete: () -> Unit
     ) {
-        // Calculate character count in thousands (K)
-        val charCount = (script.content.length / 1000.0)
+        // Calculate character count in thousands (K) - strip HTML tags first
+        val plainText = android.text.Html.fromHtml(script.content, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+        val charCount = (plainText.length / 1000.0)
         val displayCount = if (charCount < 1) {
-            "${script.content.length}"
+            "${plainText.length}"
         } else {
             "${ceil(charCount).toInt()}K"
         }
