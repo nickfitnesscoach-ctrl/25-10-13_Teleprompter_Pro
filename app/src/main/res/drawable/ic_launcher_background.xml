@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="324"
+    android:viewportHeight="324">
+
+    <!-- Темно-серый фон с градиентом -->
+    <path
+        android:fillColor="#2D2D2D"
+        android:pathData="M 0,0 L 324,0 L 324,324 L 0,324 Z" />
+
+    <!-- Имитация градиента через несколько слоев -->
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="#404040"
+        android:pathData="M 0,162 L 324,162 L 324,324 L 0,324 Z" />
+</vector>

@@ -950,13 +950,12 @@ class TeleprompterOverlayService : LifecycleService() {
 
         val scrollViewHeight = scroll.height
 
-        // Add TOP padding so text starts at bottom of screen
-        val currentPaddingBottom = textView.paddingBottom
+        // Add TOP and BOTTOM padding so text starts at bottom and can scroll all the way to top
         textView.setPadding(
             textView.paddingLeft,
-            scrollViewHeight, // Add top padding equal to scroll view height
+            scrollViewHeight, // Add top padding equal to scroll view height (text starts at bottom)
             textView.paddingRight,
-            currentPaddingBottom
+            scrollViewHeight  // Add bottom padding equal to scroll view height (text can reach top)
         )
 
         // Wait for layout to be measured
@@ -973,8 +972,9 @@ class TeleprompterOverlayService : LifecycleService() {
 
             Log.d("TeleprompterService", "contentHeight=$contentHeight, scrollViewHeight=$scrollViewHeight, maxScroll=$maxScroll")
 
+            // Check if there's enough content to scroll
             if (maxScroll <= 0) {
-                Toast.makeText(this, "Text is too short to scroll", Toast.LENGTH_SHORT).show()
+                Log.d("TeleprompterService", "Text is too short to scroll (maxScroll=$maxScroll)")
                 return@post
             }
 
@@ -989,7 +989,9 @@ class TeleprompterOverlayService : LifecycleService() {
             val remainingDistance = maxScroll - currentY
 
             if (remainingDistance <= 0) {
-                Toast.makeText(this, "Already at the end", Toast.LENGTH_SHORT).show()
+                // Restart from beginning instead of showing error message
+                scroll.scrollTo(0, 0)
+                startScrolling()
                 return@post
             }
 
@@ -1013,6 +1015,31 @@ class TeleprompterOverlayService : LifecycleService() {
 
             isScrolling = true
         }
+    }
+
+    /**
+     * Helper function to start scrolling with specific distance
+     */
+    private fun startScrollingWithDistance(scroll: ScrollView, fromY: Int, toY: Int) {
+        val duration = ((toY - fromY) * 1000 / scrollSpeed).toLong()
+
+        Log.d("TeleprompterService", "Scrolling from $fromY to $toY, duration=$duration ms")
+
+        scrollAnimator = ValueAnimator.ofInt(fromY, toY).apply {
+            this.duration = duration
+            interpolator = LinearInterpolator()
+
+            addUpdateListener { animator ->
+                if (isScrolling) {
+                    val value = animator.animatedValue as Int
+                    scroll.scrollTo(0, value)
+                }
+            }
+
+            start()
+        }
+
+        isScrolling = true
     }
 
     /**
