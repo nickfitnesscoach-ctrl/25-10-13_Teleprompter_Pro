@@ -510,10 +510,11 @@ class TeleprompterOverlayService : LifecycleService() {
         }
 
         btnMinimize?.setOnClickListener {
-            // Return to main activity (script list) - just bring it to front
+            // Return to main activity (script list)
             val intent = Intent(this, com.teleprompter.app.ui.main.MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                action = Intent.ACTION_MAIN
+                addCategory(Intent.CATEGORY_LAUNCHER)
             }
 
             startActivity(intent)
