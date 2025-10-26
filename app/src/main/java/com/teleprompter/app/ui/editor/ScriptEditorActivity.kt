@@ -271,7 +271,7 @@ class ScriptEditorActivity : ComponentActivity() {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly,
                             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                         ) {
@@ -291,11 +291,11 @@ class ScriptEditorActivity : ComponentActivity() {
 
                             // Bold button
                             Card(
-                                modifier = Modifier.padding(horizontal = 4.dp),
+                                modifier = Modifier.padding(horizontal = 2.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (isBold) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
                                 ),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(6.dp)
                             ) {
                                 TextButton(
                                     onClick = {
@@ -303,23 +303,24 @@ class ScriptEditorActivity : ComponentActivity() {
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    )
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         "B",
                                         fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
-                                        fontSize = 18.sp
+                                        fontSize = 14.sp
                                     )
                                 }
                             }
 
                             // Italic button
                             Card(
-                                modifier = Modifier.padding(horizontal = 4.dp),
+                                modifier = Modifier.padding(horizontal = 2.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (isItalic) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
                                 ),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(6.dp)
                             ) {
                                 TextButton(
                                     onClick = {
@@ -327,24 +328,25 @@ class ScriptEditorActivity : ComponentActivity() {
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    )
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         "I",
                                         fontWeight = if (isItalic) FontWeight.ExtraBold else FontWeight.Normal,
                                         fontStyle = FontStyle.Italic,
-                                        fontSize = 18.sp
+                                        fontSize = 14.sp
                                     )
                                 }
                             }
 
                             // Underline button
                             Card(
-                                modifier = Modifier.padding(horizontal = 4.dp),
+                                modifier = Modifier.padding(horizontal = 2.dp),
                                 colors = CardDefaults.cardColors(
                                     containerColor = if (isUnderline) Color(0xFFFF6F00).copy(alpha = 0.2f) else Color.Transparent
                                 ),
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(6.dp)
                             ) {
                                 TextButton(
                                     onClick = {
@@ -352,13 +354,14 @@ class ScriptEditorActivity : ComponentActivity() {
                                     },
                                     colors = ButtonDefaults.textButtonColors(
                                         contentColor = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
-                                    )
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         "U",
                                         fontWeight = if (isUnderline) FontWeight.ExtraBold else FontWeight.Normal,
                                         textDecoration = TextDecoration.Underline,
-                                        fontSize = 18.sp
+                                        fontSize = 14.sp
                                     )
                                 }
                             }
@@ -370,9 +373,10 @@ class ScriptEditorActivity : ComponentActivity() {
                                 },
                                 colors = ButtonDefaults.textButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary
-                                )
+                                ),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             ) {
-                                Text("T", fontSize = 18.sp)
+                                Text("T", fontSize = 14.sp)
                             }
                         }
                     }
