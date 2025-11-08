@@ -18,7 +18,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="0.7"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:weightSum="1">
 
             <!-- Drag handle bar -->
             <LinearLayout
@@ -40,7 +41,9 @@
             <ScrollView
                 android:id="@+id/scriptScrollView"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:minHeight="150dp"
                 android:layout_marginTop="8dp"
                 android:scrollbars="none"
                 android:fillViewport="false"

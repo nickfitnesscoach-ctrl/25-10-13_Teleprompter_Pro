@@ -267,7 +267,6 @@ class MainActivity : ComponentActivity() {
 
         val intent = Intent(this, TeleprompterOverlayService::class.java).apply {
             putExtra(Constants.EXTRA_SCRIPT_CONTENT, script.content)
-            putExtra(Constants.EXTRA_SCRIPT_ID, script.id)
         }
 
         // Use startForegroundService for Android 8.0+ (API 26+)

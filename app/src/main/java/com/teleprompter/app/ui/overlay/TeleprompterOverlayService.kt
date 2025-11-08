@@ -200,6 +200,18 @@ class TeleprompterOverlayService : LifecycleService() {
         val btnSettings = view.findViewById<ImageButton>(R.id.btnSettings)
         val btnMinimize = view.findViewById<ImageButton>(R.id.btnMinimize)
 
+        // Verify critical views
+        if (scrollView == null || scriptTextView == null) {
+            Log.e("TeleprompterService", "Critical views not found! scrollView=$scrollView, scriptTextView=$scriptTextView")
+            Toast.makeText(this, "Error: Overlay layout corrupted", Toast.LENGTH_LONG).show()
+            stopSelf()
+            return
+        }
+
+        if (btnPlayPause == null || btnSlower == null || btnFaster == null) {
+            Log.w("TeleprompterService", "Some control buttons not found. btnPlayPause=$btnPlayPause, btnSlower=$btnSlower, btnFaster=$btnFaster")
+        }
+
         // Setup button listeners
         btnPlayPause?.setOnClickListener {
             if (isScrolling) {
@@ -306,10 +318,10 @@ class TeleprompterOverlayService : LifecycleService() {
             }
 
             // Calculate duration based on speed (higher speed = faster = less duration)
-            // Formula: duration = distance * (1000 / speed)
+            // Formula: duration = distance / speed * 1000 (to convert to ms)
             // Speed 1: very slow (1000ms per pixel)
             // Speed 500: very fast (2ms per pixel)
-            val duration = (remainingDistance * 1000 / scrollSpeed).toLong()
+            val duration = (remainingDistance.toFloat() / scrollSpeed * 1000).toLong()
 
             Log.d("TeleprompterService", "Starting scroll from $currentY to $fullHeight, duration=$duration ms")
 
@@ -394,10 +406,14 @@ class TeleprompterOverlayService : LifecycleService() {
      * Start repeating speed changes when button is held
      */
     private fun startSpeedChangeRepeater(isIncreasing: Boolean) {
+        // Cancel any pending repeater first
+        stopSpeedChangeRepeater()
+
         isHoldingButton = true
 
         speedChangeRunnable = object : Runnable {
             override fun run() {
+                // Check if still holding before executing
                 if (isHoldingButton) {
                     if (isIncreasing) {
                         increaseSpeed()
@@ -411,6 +427,7 @@ class TeleprompterOverlayService : LifecycleService() {
         }
 
         // Start repeating after 300ms delay (so single tap works normally)
+        // The runnable checks isHoldingButton to prevent execution if button was released
         speedChangeHandler.postDelayed(speedChangeRunnable!!, 300)
     }
 

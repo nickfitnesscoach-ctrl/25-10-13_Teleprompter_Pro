@@ -48,8 +48,9 @@ interface ScriptDao {
 
     /**
      * Search scripts by title or content
+     * Note: Query should already include wildcards (e.g., "%search%")
      */
-    @Query("SELECT * FROM scripts WHERE title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%' ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM scripts WHERE title LIKE :query OR content LIKE :query ORDER BY updatedAt DESC")
     fun searchScripts(query: String): Flow<List<Script>>
 
     /**

@@ -139,6 +139,13 @@ class ScrollController(
         val currentY = scrollView.scrollY
         val maxScroll = scrollView.getChildAt(0)?.height?.minus(scrollView.height) ?: 0
 
+        // If content is too short to scroll
+        if (maxScroll <= 0) {
+            android.util.Log.w("ScrollController", "Content too short to scroll. maxScroll=$maxScroll")
+            pause()
+            return
+        }
+
         // If already at the end, don't start
         if (currentY >= maxScroll) {
             pause()
