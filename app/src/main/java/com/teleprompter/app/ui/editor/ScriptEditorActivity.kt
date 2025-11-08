@@ -40,6 +40,7 @@ import kotlinx.coroutines.withContext
 import com.teleprompter.app.data.db.AppDatabase
 import com.teleprompter.app.data.models.Script
 import com.teleprompter.app.data.preferences.OverlayPreferences
+import com.teleprompter.app.ui.theme.EditorAccent
 import com.teleprompter.app.ui.theme.TelePrompterTheme
 import com.teleprompter.app.utils.Constants
 import com.teleprompter.app.utils.FontManager
@@ -174,7 +175,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                             .fillMaxWidth()
                                             .height(2.dp)
                                             .background(
-                                                if (isTitleFocused) Color(0xFFFF6F00)
+                                                if (isTitleFocused) EditorAccent
                                                 else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                                             )
                                     )
@@ -192,7 +193,7 @@ class ScriptEditorActivity : ComponentActivity() {
                         ) {
                             Text(
                                 "Save",
-                                color = Color(0xFFFF6F00),
+                                color = EditorAccent,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -243,7 +244,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     .fillMaxSize()
                                     .border(
                                         width = 2.dp,
-                                        color = if (isFocused) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline, // Оранжевая рамка при фокусе
+                                        color = if (isFocused) EditorAccent else MaterialTheme.colorScheme.outline, // Оранжевая рамка при фокусе
                                         shape = RoundedCornerShape(4.dp)
                                     )
                                     .padding(12.dp)
@@ -320,7 +321,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     .size(40.dp)
                                     .border(
                                         width = if (isBold) 2.dp else 1.dp,
-                                        color = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        color = if (isBold) EditorAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
                                     )
                                     .clickable(
@@ -335,7 +336,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     "B",
                                     fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
                                     fontSize = 14.sp,
-                                    color = if (isBold) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    color = if (isBold) EditorAccent else MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -345,7 +346,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     .size(40.dp)
                                     .border(
                                         width = if (isItalic) 2.dp else 1.dp,
-                                        color = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        color = if (isItalic) EditorAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
                                     )
                                     .clickable(
@@ -361,7 +362,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     fontWeight = if (isItalic) FontWeight.ExtraBold else FontWeight.Normal,
                                     fontStyle = FontStyle.Italic,
                                     fontSize = 14.sp,
-                                    color = if (isItalic) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    color = if (isItalic) EditorAccent else MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -371,7 +372,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     .size(40.dp)
                                     .border(
                                         width = if (isUnderline) 2.dp else 1.dp,
-                                        color = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        color = if (isUnderline) EditorAccent else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         shape = RoundedCornerShape(6.dp)
                                     )
                                     .clickable(
@@ -387,7 +388,7 @@ class ScriptEditorActivity : ComponentActivity() {
                                     fontWeight = if (isUnderline) FontWeight.ExtraBold else FontWeight.Normal,
                                     textDecoration = TextDecoration.Underline,
                                     fontSize = 14.sp,
-                                    color = if (isUnderline) Color(0xFFFF6F00) else MaterialTheme.colorScheme.primary
+                                    color = if (isUnderline) EditorAccent else MaterialTheme.colorScheme.primary
                                 )
                             }
 
@@ -908,13 +909,17 @@ class ScriptEditorActivity : ComponentActivity() {
     }
 
     private fun saveScript(title: String, content: String) {
-        if (title.isBlank() || content.isBlank()) return
+        // Trim whitespace and validate content
+        val trimmedTitle = title.trim()
+        val trimmedContent = content.trim()
+
+        if (trimmedTitle.isEmpty() || trimmedContent.isEmpty()) return
 
         lifecycleScope.launch {
             val script = Script(
                 id = scriptId ?: 0,
-                title = title,
-                content = content,
+                title = trimmedTitle,
+                content = trimmedContent,
                 updatedAt = System.currentTimeMillis()
             )
 

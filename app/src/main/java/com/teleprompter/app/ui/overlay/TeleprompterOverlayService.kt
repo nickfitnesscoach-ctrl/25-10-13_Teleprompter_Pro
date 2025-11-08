@@ -448,13 +448,25 @@ class TeleprompterOverlayService : LifecycleService() {
         parent.post {
             val rect = android.graphics.Rect()
             view.getHitRect(rect)
-            rect.top -= extraPx
-            rect.left -= extraPx
-            rect.bottom += extraPx
-            rect.right += extraPx
+
+            // Calculate safe expansion - limit to prevent overlap with other buttons
+            // Check available space in parent to avoid expanding beyond parent bounds
+            val parentWidth = parent.width
+            val parentHeight = parent.height
+
+            // Limit expansion to not exceed parent boundaries or overlap with adjacent views
+            val safeExtraLeft = minOf(extraPx, rect.left)
+            val safeExtraTop = minOf(extraPx, rect.top)
+            val safeExtraRight = minOf(extraPx, parentWidth - rect.right)
+            val safeExtraBottom = minOf(extraPx, parentHeight - rect.bottom)
+
+            rect.top -= safeExtraTop
+            rect.left -= safeExtraLeft
+            rect.bottom += safeExtraBottom
+            rect.right += safeExtraRight
 
             parent.touchDelegate = android.view.TouchDelegate(rect, view)
-            Log.d("TeleprompterService", "Expanded touch area for ${view.id} by ${extraDp}dp")
+            Log.d("TeleprompterService", "Expanded touch area for ${view.id} by safe margins: L=$safeExtraLeft T=$safeExtraTop R=$safeExtraRight B=$safeExtraBottom")
         }
     }
 
@@ -1697,6 +1709,17 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun convertMarkdownToHtml(text: String): String {
         var html = text
 
+        // First, replace escaped characters with placeholders
+        val escapeMap = mutableMapOf<String, String>()
+        var escapeCounter = 0
+
+        // Handle escaped markdown characters: \** -> **, \__ -> __, \_ -> _
+        html = html.replace(Regex("""\\(\*\*|__|_)""")) { matchResult ->
+            val placeholder = "___ESCAPE_${escapeCounter++}___"
+            escapeMap[placeholder] = matchResult.groupValues[1]
+            placeholder
+        }
+
         // Bold: **text** -> <b>text</b>
         html = html.replace(Regex("""\*\*([^*]+?)\*\*"""), "<b>$1</b>")
 
@@ -1705,6 +1728,11 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Italic: _text_ -> <i>text</i> (single _ only)
         html = html.replace(Regex("""_([^_]+?)_"""), "<i>$1</i>")
+
+        // Restore escaped characters
+        escapeMap.forEach { (placeholder, original) ->
+            html = html.replace(placeholder, original)
+        }
 
         return html
     }

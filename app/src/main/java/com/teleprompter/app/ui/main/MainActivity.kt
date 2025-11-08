@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.Html
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -523,7 +524,15 @@ class MainActivity : ComponentActivity() {
      * Assuming ~200 words per minute reading speed
      */
     private fun formatScriptTime(content: String): String {
-        val wordCount = content.split("\\s+".toRegex()).size
+        // Strip HTML tags before counting words
+        val plainText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(content, Html.FROM_HTML_MODE_LEGACY).toString()
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(content).toString()
+        }
+
+        val wordCount = plainText.split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
         val minutes = wordCount / 200
         val seconds = ((wordCount % 200) / 200.0 * 60).toInt()
 

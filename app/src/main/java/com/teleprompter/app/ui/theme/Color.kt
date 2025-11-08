@@ -7,6 +7,9 @@ val OrangePrimary = Color(0xFFFF5722)
 val OrangePrimaryVariant = Color(0xFFE64A19)
 val OrangeLight = Color(0xFFFF7043)
 
+// Editor accent color - used for focus states and active indicators
+val EditorAccent = Color(0xFFFF6F00)
+
 // Background colors - Light theme
 val BackgroundLight = Color(0xFFFAFAFA)
 val SurfaceLight = Color(0xFFFFFFFF)
