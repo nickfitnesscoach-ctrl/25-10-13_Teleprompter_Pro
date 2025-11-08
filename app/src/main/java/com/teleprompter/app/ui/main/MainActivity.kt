@@ -70,7 +70,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         // Swipe to dismiss configuration
-        private const val SWIPE_DISMISS_THRESHOLD = 0.7f // Require 70% swipe to delete
+        // Higher threshold (85%) prevents accidental deletions during scrolling
+        private const val SWIPE_DISMISS_THRESHOLD = 0.85f // Require 85% swipe to delete
     }
 
     private val notificationPermissionLauncher = registerForActivityResult(

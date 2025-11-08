@@ -77,20 +77,27 @@ class ScriptEditorActivity : ComponentActivity() {
         // Load existing script if editing
         LaunchedEffect(scriptId) {
             scriptId?.let { id ->
-                withContext(Dispatchers.IO) {
+                val script = withContext(Dispatchers.IO) {
                     database.scriptDao().getScriptById(id)
-                }?.let { script ->
-                    title = script.title
-                    // Convert HTML back to AnnotatedString
-                    val annotatedString = htmlToAnnotatedString(script.content)
+                }
 
-                    // Load saved font family from preferences and apply it
+                script?.let {
+                    title = it.title
+
+                    // Load saved font family from preferences
                     val overlayPreferences = OverlayPreferences(this@ScriptEditorActivity)
-                    val savedFontKey = overlayPreferences.getFontFamily()
+                    val savedFontKey = withContext(Dispatchers.IO) {
+                        overlayPreferences.getFontFamily()
+                    }
                     val fontFamily = FontManager.keyToFontFamily(savedFontKey)
+
+                    // Convert HTML back to AnnotatedString on Main thread to ensure proper rendering
+                    val annotatedString = htmlToAnnotatedString(it.content)
 
                     // Apply font to the loaded content
                     val contentWithFont = applyFontFamily(TextFieldValue(annotatedString = annotatedString), fontFamily)
+
+                    // Update content on Main thread to ensure UI update
                     content = contentWithFont
                 }
             }

@@ -131,23 +131,28 @@ class TeleprompterOverlayService : LifecycleService() {
     // PIP mode state
     private var isPipMode = false
     private var pipView: View? = null
+    private var savedScrollPosition: Int = 0 // Save scroll position when entering PIP mode
 
     override fun onCreate() {
         super.onCreate()
 
         // Check notification permission for Android 13+
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            Toast.makeText(
-                this,
-                "Notification permission required for teleprompter overlay",
-                Toast.LENGTH_LONG
-            ).show()
-            stopSelf()
-            return
+        // CRITICAL: Must check before calling startForeground() to avoid crash
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Toast.makeText(
+                    this,
+                    "Notification permission required for teleprompter overlay",
+                    Toast.LENGTH_LONG
+                ).show()
+                // Stop service immediately without proceeding to startForeground()
+                stopSelf()
+                return
+            }
         }
 
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -373,10 +378,16 @@ class TeleprompterOverlayService : LifecycleService() {
 
             // Update layout params with loaded values
             layoutParams?.let { params ->
-                params.x = loadedX
-                params.y = loadedY.coerceAtMost(resources.displayMetrics.heightPixels - params.height)
+                // Validate position against current screen dimensions to prevent off-screen overlay
+                val screenWidth = resources.displayMetrics.widthPixels
+                val screenHeight = resources.displayMetrics.heightPixels
+
                 params.width = if (loadedWidth == -1) WindowManager.LayoutParams.MATCH_PARENT else loadedWidth
                 params.height = loadedHeight
+
+                // Clamp X and Y coordinates to ensure overlay stays on screen
+                params.x = loadedX.coerceIn(0, (screenWidth - params.width).coerceAtLeast(0))
+                params.y = loadedY.coerceIn(0, (screenHeight - params.height).coerceAtLeast(0))
                 // Only update if view is attached to window manager
                 overlayView?.let { view ->
                     if (view.isAttachedToWindow) {
@@ -413,8 +424,9 @@ class TeleprompterOverlayService : LifecycleService() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = savedX
-            y = savedY.coerceAtMost(screenHeight - finalHeight)
+            // Validate initial position to ensure overlay stays on screen
+            x = savedX.coerceIn(0, (screenWidth - finalWidth).coerceAtLeast(0))
+            y = savedY.coerceIn(0, (screenHeight - finalHeight).coerceAtLeast(0))
         }
 
         // Add view to window
@@ -472,58 +484,118 @@ class TeleprompterOverlayService : LifecycleService() {
         val btnFasterTop = view.findViewById<ImageButton>(R.id.btnFasterTop)
 
         // Setup button listeners for both main and top row buttons
-        val playPauseClickListener = View.OnClickListener {
-            if (isScrolling) {
-                stopScrolling()
-                btnPlayPause?.setImageResource(R.drawable.ic_play)
-                btnPlayPauseTop?.setImageResource(R.drawable.ic_play)
-            } else {
-                startScrolling()
-                btnPlayPause?.setImageResource(android.R.drawable.ic_media_pause)
-                btnPlayPauseTop?.setImageResource(R.drawable.ic_pause)
+        // Use individual listeners to prevent double-execution during layout transitions
+        btnPlayPause?.setOnClickListener {
+            // Only execute if this button is visible
+            if (btnPlayPause.visibility == View.VISIBLE) {
+                if (isScrolling) {
+                    stopScrolling()
+                    btnPlayPause.setImageResource(R.drawable.ic_play)
+                    btnPlayPauseTop?.setImageResource(R.drawable.ic_play)
+                } else {
+                    startScrolling()
+                    btnPlayPause.setImageResource(android.R.drawable.ic_media_pause)
+                    btnPlayPauseTop?.setImageResource(R.drawable.ic_pause)
+                }
             }
         }
 
-        btnPlayPause?.setOnClickListener(playPauseClickListener)
-        btnPlayPauseTop?.setOnClickListener(playPauseClickListener)
+        btnPlayPauseTop?.setOnClickListener {
+            // Only execute if this button is visible
+            if (btnPlayPauseTop.visibility == View.VISIBLE) {
+                if (isScrolling) {
+                    stopScrolling()
+                    btnPlayPause?.setImageResource(R.drawable.ic_play)
+                    btnPlayPauseTop.setImageResource(R.drawable.ic_play)
+                } else {
+                    startScrolling()
+                    btnPlayPause?.setImageResource(android.R.drawable.ic_media_pause)
+                    btnPlayPauseTop.setImageResource(R.drawable.ic_pause)
+                }
+            }
+        }
 
         // Setup slower button with hold functionality
-        val slowerTouchListener = View.OnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    decreaseSpeed()
-                    startSpeedChangeRepeater(false) // false = slower
-                    true
+        btnSlower?.setOnTouchListener { _, event ->
+            // Only execute if this button is visible
+            if (btnSlower.visibility == View.VISIBLE) {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        decreaseSpeed()
+                        startSpeedChangeRepeater(false) // false = slower
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        stopSpeedChangeRepeater()
+                        true
+                    }
+                    else -> false
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    stopSpeedChangeRepeater()
-                    true
-                }
-                else -> false
+            } else {
+                false
             }
         }
 
-        btnSlower?.setOnTouchListener(slowerTouchListener)
-        btnSlowerTop?.setOnTouchListener(slowerTouchListener)
+        btnSlowerTop?.setOnTouchListener { _, event ->
+            // Only execute if this button is visible
+            if (btnSlowerTop.visibility == View.VISIBLE) {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        decreaseSpeed()
+                        startSpeedChangeRepeater(false) // false = slower
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        stopSpeedChangeRepeater()
+                        true
+                    }
+                    else -> false
+                }
+            } else {
+                false
+            }
+        }
 
         // Setup faster button with hold functionality
-        val fasterTouchListener = View.OnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    increaseSpeed()
-                    startSpeedChangeRepeater(true) // true = faster
-                    true
+        btnFaster?.setOnTouchListener { _, event ->
+            // Only execute if this button is visible
+            if (btnFaster.visibility == View.VISIBLE) {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        increaseSpeed()
+                        startSpeedChangeRepeater(true) // true = faster
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        stopSpeedChangeRepeater()
+                        true
+                    }
+                    else -> false
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    stopSpeedChangeRepeater()
-                    true
-                }
-                else -> false
+            } else {
+                false
             }
         }
 
-        btnFaster?.setOnTouchListener(fasterTouchListener)
-        btnFasterTop?.setOnTouchListener(fasterTouchListener)
+        btnFasterTop?.setOnTouchListener { _, event ->
+            // Only execute if this button is visible
+            if (btnFasterTop.visibility == View.VISIBLE) {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        increaseSpeed()
+                        startSpeedChangeRepeater(true) // true = faster
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        stopSpeedChangeRepeater()
+                        true
+                    }
+                    else -> false
+                }
+            } else {
+                false
+            }
+        }
 
         // Setup drag button with improved touch handling and expanded touch area
         val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
@@ -1034,6 +1106,11 @@ class TeleprompterOverlayService : LifecycleService() {
                 // Restart from beginning instead of showing error message
                 scroll.scrollTo(0, 0)
                 startScrolling()
+                // Update play button icon to show pause state since we're scrolling
+                overlayView?.let { view ->
+                    view.findViewById<ImageButton>(R.id.btnPlayPause)
+                        ?.setImageResource(android.R.drawable.ic_media_pause)
+                }
                 return@post
             }
 
@@ -1112,15 +1189,21 @@ class TeleprompterOverlayService : LifecycleService() {
             // Restart scrolling with new speed if currently scrolling
             if (isScrolling) {
                 stopScrolling()
-                startScrolling()
-                // Update play/pause button icon only if overlayView is still available
-                overlayView?.let { view ->
-                    view.findViewById<ImageButton>(R.id.btnPlayPause)
-                        ?.setImageResource(android.R.drawable.ic_media_pause)
-                }
+                // Add small delay to ensure animator is fully cancelled before restarting
+                Handler(Looper.getMainLooper()).postDelayed({
+                    startScrolling()
+                    // Update play/pause button icon only if overlayView is still available
+                    overlayView?.let { view ->
+                        view.findViewById<ImageButton>(R.id.btnPlayPause)
+                            ?.setImageResource(android.R.drawable.ic_media_pause)
+                    }
+                }, 50) // 50ms delay to ensure smooth transition
             }
         } finally {
-            isChangingSpeed = false
+            // Delay clearing the flag to prevent rapid successive calls
+            Handler(Looper.getMainLooper()).postDelayed({
+                isChangingSpeed = false
+            }, 100)
         }
     }
 
@@ -1141,15 +1224,21 @@ class TeleprompterOverlayService : LifecycleService() {
             // Restart scrolling with new speed if currently scrolling
             if (isScrolling) {
                 stopScrolling()
-                startScrolling()
-                // Update play/pause button icon only if overlayView is still available
-                overlayView?.let { view ->
-                    view.findViewById<ImageButton>(R.id.btnPlayPause)
-                        ?.setImageResource(android.R.drawable.ic_media_pause)
-                }
+                // Add small delay to ensure animator is fully cancelled before restarting
+                Handler(Looper.getMainLooper()).postDelayed({
+                    startScrolling()
+                    // Update play/pause button icon only if overlayView is still available
+                    overlayView?.let { view ->
+                        view.findViewById<ImageButton>(R.id.btnPlayPause)
+                            ?.setImageResource(android.R.drawable.ic_media_pause)
+                    }
+                }, 50) // 50ms delay to ensure smooth transition
             }
         } finally {
-            isChangingSpeed = false
+            // Delay clearing the flag to prevent rapid successive calls
+            Handler(Looper.getMainLooper()).postDelayed({
+                isChangingSpeed = false
+            }, 100)
         }
     }
 
@@ -1428,6 +1517,12 @@ class TeleprompterOverlayService : LifecycleService() {
 
         isPipMode = true
 
+        // Save current scroll position before removing overlay
+        scrollView?.let { scroll ->
+            savedScrollPosition = scroll.scrollY
+            Log.d("TeleprompterService", "Saved scroll position: $savedScrollPosition")
+        }
+
         // Stop scrolling when entering PIP
         if (isScrolling) {
             stopScrolling()
@@ -1587,6 +1682,12 @@ class TeleprompterOverlayService : LifecycleService() {
             Html.fromHtml(htmlContent)
         }
 
+        // Restore scroll position after content is set
+        scrollView?.post {
+            scrollView?.scrollTo(0, savedScrollPosition)
+            Log.d("TeleprompterService", "Restored scroll position: $savedScrollPosition")
+        }
+
         Log.d("TeleprompterService", "Exited PIP mode")
     }
 
@@ -1611,28 +1712,41 @@ class TeleprompterOverlayService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // Disable orientation listener
-        orientationEventListener?.disable()
-        orientationEventListener = null
+        // Disable orientation listener FIRST to prevent further callbacks
+        orientationEventListener?.let { listener ->
+            try {
+                listener.disable()
+            } catch (e: Exception) {
+                Log.e("TeleprompterService", "Error disabling orientation listener", e)
+            }
+        }
+
+        // Remove all pending orientation callbacks before nulling the listener
         pendingOrientationChange?.let { orientationChangeHandler.removeCallbacks(it) }
+        pendingOrientationChange = null
         orientationChangeHandler.removeCallbacksAndMessages(null)
+
+        // Now safe to null the listener after all callbacks are removed
+        orientationEventListener = null
 
         // Stop scrolling
         stopScrolling()
 
-        // Stop speed change repeater
+        // Stop speed change repeater and clear all callbacks
         stopSpeedChangeRepeater()
         speedChangeHandler.removeCallbacksAndMessages(null)
 
-        // Clear speed overlay timer
+        // Clear speed overlay timer and callbacks
         speedOverlayRunnable?.let { speedOverlayHandler.removeCallbacks(it) }
+        speedOverlayRunnable = null
         speedOverlayHandler.removeCallbacksAndMessages(null)
 
-        // Clear opacity panel timer
+        // Clear opacity panel timer and callbacks
         opacityPanelHideRunnable?.let { opacityPanelHandler.removeCallbacks(it) }
+        opacityPanelHideRunnable = null
         opacityPanelHandler.removeCallbacksAndMessages(null)
 
-        // Remove overlay
+        // Remove overlay view
         overlayView?.let { view ->
             try {
                 windowManager.removeView(view)
