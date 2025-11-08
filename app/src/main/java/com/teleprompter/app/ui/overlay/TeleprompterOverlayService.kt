@@ -9,6 +9,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
@@ -33,7 +34,6 @@ import com.teleprompter.app.data.preferences.OverlayPreferences
 import com.teleprompter.app.ui.main.MainActivity
 import com.teleprompter.app.utils.Constants
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 /**
  * Foreground service for displaying teleprompter overlay
@@ -134,8 +134,13 @@ class TeleprompterOverlayService : LifecycleService() {
     private fun createOverlay() {
         if (overlayView != null) return
 
-        // Inflate layout
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_portrait, null)
+        // Inflate layout based on orientation
+        val layoutRes = if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            R.layout.overlay_landscape
+        } else {
+            R.layout.overlay_portrait
+        }
+        overlayView = LayoutInflater.from(this).inflate(layoutRes, null)
 
         // Create layout params
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -145,11 +150,7 @@ class TeleprompterOverlayService : LifecycleService() {
             WindowManager.LayoutParams.TYPE_PHONE
         }
 
-        // Load saved position synchronously
-        val (savedX, savedY) = runBlocking {
-            overlayPreferences.getPosition()
-        }
-
+        // Create layout params with default position
         layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -160,8 +161,8 @@ class TeleprompterOverlayService : LifecycleService() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = savedX
-            y = savedY
+            x = 0
+            y = 100
         }
 
         // Add view to window
@@ -169,6 +170,18 @@ class TeleprompterOverlayService : LifecycleService() {
 
         // Setup UI components
         setupViews()
+
+        // Load saved position asynchronously and update
+        lifecycleScope.launch {
+            val (savedX, savedY) = overlayPreferences.getPosition()
+            layoutParams?.let { params ->
+                params.x = savedX
+                params.y = savedY
+                overlayView?.let { view ->
+                    windowManager.updateViewLayout(view, params)
+                }
+            }
+        }
     }
 
     /**
@@ -184,6 +197,7 @@ class TeleprompterOverlayService : LifecycleService() {
         val btnPlayPause = view.findViewById<ImageButton>(R.id.btnPlayPause)
         val btnSlower = view.findViewById<ImageButton>(R.id.btnSlower)
         val btnFaster = view.findViewById<ImageButton>(R.id.btnFaster)
+        val btnSettings = view.findViewById<ImageButton>(R.id.btnSettings)
         val btnMinimize = view.findViewById<ImageButton>(R.id.btnMinimize)
 
         // Setup button listeners
@@ -233,6 +247,15 @@ class TeleprompterOverlayService : LifecycleService() {
         val btnDrag = view.findViewById<ImageButton>(R.id.btnDrag)
         btnDrag?.setOnTouchListener { _, event ->
             handleDragTouch(event)
+        }
+
+        // Setup settings button
+        btnSettings?.setOnClickListener {
+            Toast.makeText(
+                this,
+                "Settings feature coming soon! Use faster/slower buttons to adjust speed.",
+                Toast.LENGTH_LONG
+            ).show()
         }
 
         btnMinimize?.setOnClickListener {

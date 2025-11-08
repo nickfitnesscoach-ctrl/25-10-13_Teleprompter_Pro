@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -53,14 +54,9 @@ class OverlayPreferences(private val context: Context) {
      * Get position synchronously (for initial load)
      */
     suspend fun getPosition(): Pair<Int, Int> {
-        var x = DEFAULT_X
-        var y = DEFAULT_Y
-
-        context.dataStore.edit { preferences ->
-            x = preferences[OVERLAY_X] ?: DEFAULT_X
-            y = preferences[OVERLAY_Y] ?: DEFAULT_Y
-        }
-
+        val preferences = context.dataStore.data.first()
+        val x = preferences[OVERLAY_X] ?: DEFAULT_X
+        val y = preferences[OVERLAY_Y] ?: DEFAULT_Y
         return Pair(x, y)
     }
 }

@@ -40,6 +40,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var permissionsManager: PermissionsManager
     private lateinit var database: AppDatabase
 
+    // Track permission state for UI updates
+    private val hasPermission = mutableStateOf(false)
+
     // Permission launcher for POST_NOTIFICATIONS (Android 13+)
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -58,6 +61,9 @@ class MainActivity : ComponentActivity() {
 
         permissionsManager = PermissionsManager(this)
         database = AppDatabase.getDatabase(this)
+
+        // Initialize permission state
+        hasPermission.value = permissionsManager.hasOverlayPermission()
 
         // Request notification permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -80,7 +86,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun MainScreen() {
         val scripts = remember { mutableStateOf<List<Script>>(emptyList()) }
-        val hasPermission = remember { mutableStateOf(permissionsManager.hasOverlayPermission()) }
+        val scriptToDelete = remember { mutableStateOf<Script?>(null) }
 
         // Collect scripts from database
         LaunchedEffect(Unit) {
@@ -162,12 +168,36 @@ class MainActivity : ComponentActivity() {
                                 script = script,
                                 onPlay = { startOverlayService(script) },
                                 onEdit = { openScriptEditor(script) },
-                                onDelete = { deleteScript(script) }
+                                onDelete = { scriptToDelete.value = script }
                             )
                         }
                     }
                 }
             }
+        }
+
+        // Delete confirmation dialog
+        scriptToDelete.value?.let { script ->
+            AlertDialog(
+                onDismissRequest = { scriptToDelete.value = null },
+                title = { Text("Delete Script?") },
+                text = { Text("Are you sure you want to delete \"${script.title}\"? This action cannot be undone.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            deleteScript(script)
+                            scriptToDelete.value = null
+                        }
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { scriptToDelete.value = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 
@@ -265,6 +295,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Permission status will be refreshed automatically through recomposition
+        // Refresh permission status when returning from Settings
+        hasPermission.value = permissionsManager.hasOverlayPermission()
     }
 }

@@ -23,12 +23,14 @@ import kotlinx.coroutines.launch
 class ScriptEditorActivity : ComponentActivity() {
 
     private lateinit var database: AppDatabase
+    private lateinit var validator: com.teleprompter.app.data.validation.ScriptValidator
     private var scriptId: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         database = AppDatabase.getDatabase(this)
+        validator = com.teleprompter.app.data.validation.ScriptValidatorImpl()
         scriptId = intent.getLongExtra(Constants.EXTRA_SCRIPT_ID, -1L).takeIf { it != -1L }
 
         setContent {
@@ -43,6 +45,17 @@ class ScriptEditorActivity : ComponentActivity() {
         var title by remember { mutableStateOf("") }
         var content by remember { mutableStateOf("") }
         var isLoading by remember { mutableStateOf(true) }
+        var titleError by remember { mutableStateOf<String?>(null) }
+        var contentError by remember { mutableStateOf<String?>(null) }
+
+        // Validate inputs
+        val isValid = remember(title, content) {
+            val titleValidation = validator.validateTitle(title)
+            val contentValidation = validator.validateContent(content)
+            titleError = titleValidation.errorMessage
+            contentError = contentValidation.errorMessage
+            titleValidation.isValid && contentValidation.isValid
+        }
 
         // Load existing script if editing
         LaunchedEffect(scriptId) {
@@ -90,7 +103,9 @@ class ScriptEditorActivity : ComponentActivity() {
                         onValueChange = { title = it },
                         label = { Text("Script Title") },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        isError = titleError != null,
+                        supportingText = titleError?.let { { Text(it) } }
                     )
 
                     // Content input
@@ -101,7 +116,9 @@ class ScriptEditorActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        minLines = 10
+                        minLines = 10,
+                        isError = contentError != null,
+                        supportingText = contentError?.let { { Text(it) } }
                     )
 
                     // Action buttons
@@ -112,7 +129,7 @@ class ScriptEditorActivity : ComponentActivity() {
                         Button(
                             onClick = { saveScript(title, content) },
                             modifier = Modifier.weight(1f),
-                            enabled = title.isNotBlank() && content.isNotBlank()
+                            enabled = isValid
                         ) {
                             Text("Save")
                         }
@@ -132,18 +149,28 @@ class ScriptEditorActivity : ComponentActivity() {
         if (title.isBlank() || content.isBlank()) return
 
         lifecycleScope.launch {
-            val script = Script(
-                id = scriptId ?: 0,
-                title = title,
-                content = content,
-                updatedAt = System.currentTimeMillis()
-            )
-
             withContext(Dispatchers.IO) {
                 if (scriptId == null) {
+                    // Create new script
+                    val script = Script(
+                        id = 0,
+                        title = title,
+                        content = content,
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
                     database.scriptDao().insertScript(script)
                 } else {
-                    database.scriptDao().updateScript(script)
+                    // Update existing script - preserve createdAt
+                    val existing = database.scriptDao().getScriptById(scriptId!!)
+                    if (existing != null) {
+                        val updated = existing.copy(
+                            title = title,
+                            content = content,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        database.scriptDao().updateScript(updated)
+                    }
                 }
             }
 
